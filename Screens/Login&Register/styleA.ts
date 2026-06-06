@@ -95,7 +95,6 @@ const styles = StyleSheet.create({
     button: {
         alignItems: 'center',
         marginTop: -20,
-        alignItems: 'center',
         textAlign: 'center',
         margin: 20,
     },
@@ -106,11 +105,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 15,
         borderRadius: 10,
-    },
-    textSign: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: 'white',
     },
     text_container: {
         marginTop: 20,
@@ -170,7 +164,11 @@ const styles = StyleSheet.create({
         width: 220,
         height: 150,
         borderRadius: 8,
-        marginBottom: 8, // Espaciado entre la imagen y el título
+        marginBottom: 8,
+    },
+    bottomButton: {
+        alignItems: 'center' as const,
+        marginTop: 10,
     },
 })
 export default styles;

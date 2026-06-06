@@ -1,3 +1,4 @@
+import { API_URL } from '../constants';
 import React, { useState, useEffect } from 'react';
 import {
   Button,
@@ -11,7 +12,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -21,8 +21,8 @@ import styles from '../Screens/Login&Register/styleA';
 import { Ionicons, AntDesign, Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Location from 'expo-location';
-import axios from 'axios';
 import { SelectList } from 'react-native-dropdown-select-list'
+import Toast from 'react-native-toast-message'
 
 const imgDir = FileSystem.documentDirectory + 'images/';
 
@@ -34,8 +34,8 @@ const ensureDirExists = async () => {
 };
 
 export default function AddReportScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
+  const navigation = useNavigation<any>();
+  const route = useRoute() as any;
   const [token, setToken] = useState(null);
   const [selectedDescription, setSelectedDescription] = useState('');
   const [description, setDescription] = useState('');
@@ -76,8 +76,6 @@ export default function AddReportScreen() {
   ];
 
 
-
-  console.log(selectedDescription)
 
   useEffect(() => {
     async function getTokenFromStorage() {
@@ -122,16 +120,16 @@ export default function AddReportScreen() {
     const options = {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [4, 3],
+      aspect: [4, 3] as [number, number],
       quality: 0.75,
       ...(useLibrary ? {} : { cameraType: 'back' })
     };
 
     if (useLibrary) {
-      result = await ImagePicker.launchImageLibraryAsync(options);
+      result = await ImagePicker.launchImageLibraryAsync(options as any);
     } else {
       await ImagePicker.requestCameraPermissionsAsync();
-      result = await ImagePicker.launchCameraAsync(options);
+      result = await ImagePicker.launchCameraAsync(options as any);
     }
 
     if (!result.cancelled) {
@@ -147,7 +145,7 @@ export default function AddReportScreen() {
   };
 
 
-  const descriptionString = typeof description === 'string' ? description : description.toString();
+  const descriptionString = typeof description === 'string' ? description : String(description);
 
   const locations = {
     faculty: selectedB,
@@ -156,50 +154,58 @@ export default function AddReportScreen() {
   };
   
   const uploadReport = async () => {
-    // Construir el objeto de datos a enviar
+    setUploading(true);
     const data = new FormData();
-    data.append('title', title); // Usamos el valor de selectedDescription para el campo title
+    data.append('title', title);
     data.append('description', descriptionString);
-  
-    // Agregar el objeto 'locations' directamente a FormData
-    Object.keys(locations).forEach(key => {
-      data.append(`location[${key}]`, locations[key]);
-    });
-  
+
+    const locationStr = `${locations.faculty}/${locations.building}`.replace(/ /g, '-');
+    data.append('location', locationStr);
+
+    console.log('=== ENVIANDO REPORTE ===');
+    console.log('title:', title);
+    console.log('description:', descriptionString);
+    console.log('location:', locationStr);
+    console.log('images:', images.length);
+
     images.forEach(image => {
-      // Agregamos cada imagen al campo 'files' utilizando su URL local
       data.append('files', {
         uri: image,
-        type: 'image/jpeg', // Suponiendo que las imágenes son JPEG
-        name: image.split('/').pop() // Nombre de archivo basado en la URL local
-      });
+        type: 'image/jpeg',
+        name: image.split('/').pop()
+      } as any);
     });
-  
-    // Realizar la solicitud a la API
+
     try {
-      const response = await axios.post('https://ujed-api.onrender.com/api/reports', data, {
+      const response = await fetch(`${API_URL}/api/reports`, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}` // Incluir el token de autenticación en el encabezado
-        }
+          'Authorization': `Bearer ${token}`,
+        },
+        body: data,
       });
-      // Manejar la respuesta de la API según sea necesario
-      console.log('Respuesta de la API:', response.data);
-      // Limpiar el estado después de enviar el reporte
-      setSelectedDescription('');
-      setDescription('');
-      setImages([]);
-  
-      // Mostrar una alerta o realizar otras acciones después de subir el reporte
-      Alert.alert('Reporte subido exitosamente');
+      const json = await response.json();
+      console.log('=== RESPUESTA API ===');
+      console.log('status:', response.status);
+      console.log('data:', JSON.stringify(json));
+      if (!response.ok) {
+        const msg = json?.message;
+        const text2 = Array.isArray(msg) ? msg.join(', ') : (msg || 'Inténtalo de nuevo más tarde.');
+        Toast.show({ type: 'error', text1: 'Error al subir el reporte', text2, visibilityTime: 8000 });
+      } else {
+        setSelectedDescription('');
+        setDescription('');
+        setImages([]);
+        Toast.show({ type: 'success', text1: 'Reporte enviado', text2: 'Tu reporte fue registrado exitosamente.' });
+      }
     } catch (error) {
-      // Manejar errores en la solicitud a la API
-      console.error('Error al subir el reporte:', error.response.data.message); // Accede al mensaje de error en 'message'
-      // Mostrar una alerta con el mensaje de error proporcionado por la API
-      Alert.alert('Error al subir el reporte', error.response.data.message || 'Inténtalo de nuevo más tarde.');
+      console.log('=== ERROR DE RED ===', error);
+      Toast.show({ type: 'error', text1: 'Error de red', text2: 'No se pudo conectar al servidor.', visibilityTime: 8000 });
+    } finally {
+      setUploading(false);
     }
   };
-  
+
   const deleteImage = async (uri) => {
     await FileSystem.deleteAsync(uri);
     setImages(images.filter((i) => i !== uri));
@@ -208,21 +214,16 @@ export default function AddReportScreen() {
   const deleteAllImages = async () => {
     for (const image of images) {
       await FileSystem.deleteAsync(image);
-      navigation.goBack()
     }
-    setImages([]); // Limpiar el estado para eliminar todas las imágenes
+    setImages([]);
+    navigation.goBack();
   };
-  
+
   const handlePress = () => {
-    // Llamando a uploadReport y esperando a que se complete
     uploadReport().then(() => {
-      // Después de que uploadReport se haya completado, llamar a deleteAllImages
       deleteAllImages();
-    }).catch(error => {
-      // Manejar cualquier error que pueda ocurrir durante uploadReport
-      console.error('Error al subir el reporte:', error);
-      // Mostrar una alerta u otras acciones en caso de error
-      Alert.alert('Error al subir el reporte. Por favor, inténtalo de nuevo más tarde.');
+    }).catch(() => {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo subir el reporte. Inténtalo de nuevo.' });
     });
   };
   
@@ -251,6 +252,7 @@ export default function AddReportScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: 'white' }}
+        contentContainerStyle={{ paddingBottom: 40 }}
       >
         <View>
           <View style={{ position: 'relative' }}>
@@ -295,7 +297,7 @@ export default function AddReportScreen() {
               setSelected={(val) => setSelectedB(val)}
               data={data}
               save="value"
-              label="Plantel"
+              placeholder="Plantel"
               boxStyles={{
                 borderRadius: 5,
 
@@ -360,7 +362,7 @@ export default function AddReportScreen() {
           </View>
           <View style={{ marginBottom: 40 }}>
             {/* <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '500' }}>My Images</Text> */}
-            <FlatList data={images} renderItem={renderItem} />
+            <FlatList data={images} renderItem={renderItem} scrollEnabled={false} />
             {uploading && (
               <View
                 style={[

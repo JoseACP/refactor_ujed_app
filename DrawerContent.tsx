@@ -13,7 +13,7 @@ const DrawerList = [
   
 ];
 const DrawerLayout = ({icon, label, navigateTo}) => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   // console.log(userData);
   return (
     <DrawerItem
@@ -39,7 +39,7 @@ const DrawerItems = props => {
   });
 };
 function DrawerContent(props) {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [email, setEmail] = useState('');
 
   function signOut(){
@@ -48,7 +48,7 @@ function DrawerContent(props) {
   
   }
 
-  const handleLogout = async (navigation) => {
+  const handleLogout = async () => {
     try {
       // Eliminar los datos de sesión almacenados
       await AsyncStorage.removeItem('token');
@@ -172,7 +172,6 @@ const styles = StyleSheet.create({
     marginTop: 15,
     borderBottomWidth: 0,
     borderBottomColor: '#dedede',
-    borderBottomWidth: 1,
   },
   bottomDrawerSection: {
     marginBottom: 15,

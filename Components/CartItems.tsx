@@ -1,4 +1,6 @@
-import { Center, Pressable, Box, Text, Image, HStack, VStack, Button, View, CheckIcon } from 'react-native'
+// @ts-nocheck
+import { Pressable, Text, Image, Button, View } from 'react-native'
+import { Center, Box, HStack, VStack, CheckIcon } from 'native-base'
 import React from 'react'
 import { SwipeListView } from "react-native-swipe-list-view"
 import products from '../Products'

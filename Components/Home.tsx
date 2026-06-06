@@ -19,10 +19,10 @@ import ImageContainer from './ImageContainer';
 function Home(props) {
 
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const route = useRoute();
   const [email, setEmail] = useState('');
-  const userToken = route.params?.token || ''
+  const userToken = (route.params as any)?.token || ''
   console.log(props);
   const [userData, setUserData] = useState('');
 
@@ -34,7 +34,7 @@ function Home(props) {
   
   }
 
-  const handleLogout = async (navigation) => {
+  const handleLogout = async () => {
     try {
       // Eliminar los datos de sesión almacenados
       await AsyncStorage.removeItem('token');
@@ -79,6 +79,8 @@ useEffect(() => {
     console.log(token);
    
   }
+
+  const toggleModal = () => {};
 
   const handlePress = () => {
     // Llamando a ambas funciones
@@ -423,7 +425,6 @@ text_header2: {
   button: {
     alignItems: 'center',
     marginTop: -20,
-    alignItems: 'center',
     textAlign: 'center',
     margin: 20,
   },

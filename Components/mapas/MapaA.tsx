@@ -25,8 +25,9 @@ import { SelectList } from 'react-native-dropdown-select-list'
 
 
 function MapaA() {
-    const navigation = useNavigation();
-  const route = useRoute();
+    const navigation = useNavigation<any>();
+  const route = useRoute() as any;
+  const [selectedDescription, setSelectedDescription] = useState('');
   return (
     <View style={styles.logoContainer}>
     <TouchableOpacity

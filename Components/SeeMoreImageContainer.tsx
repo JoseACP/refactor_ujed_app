@@ -1,5 +1,6 @@
 
 
+import { API_URL } from '../constants';
 import { View, ActivityIndicator, Image, Text} from 'react-native';
 import ReportGridComponent from './ReportGridComponent';
 // import GridComponent from './GridComponent';
@@ -8,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from 'react';
 
 const SeeMoreImageContainer = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState('');
@@ -22,7 +23,7 @@ const SeeMoreImageContainer = () => {
         if (storedToken && storedUserId) {
           setToken(storedToken);
           setUserId(storedUserId);
-          const response = await fetch(`https://ujed-api.onrender.com/api/reports/${storedUserId}/user?limit=10&offset=0&order=asc`, {
+          const response = await fetch(`${API_URL}/api/reports/${storedUserId}/user?limit=10&offset=0&order=asc`, {
             method: 'GET',
             headers: {
               Authorization: `Bearer ${storedToken}`,

@@ -1,3 +1,4 @@
+import { API_URL } from '../../constants';
 const {
   View,
   Text,
@@ -5,25 +6,25 @@ const {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
+  ActivityIndicator,
 } = require('react-native');
 import {useNavigation} from '@react-navigation/native';
 import styles from './style';
 import Feather from 'react-native-vector-icons/Feather';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {useEffect, useState} from 'react';
-import {log} from 'react-native-reanimated';
 import axios from 'axios';
 import NetInfo from '@react-native-community/netinfo';
-
+import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function LoginPage() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVerify, setPasswordVerify] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   
   useEffect(() => {
@@ -56,43 +57,40 @@ function LoginPage() {
   }
 
   async function handleSubmit() {
-    console.log(email, password);
     const userData = { email, password };
-  
+    setLoading(true);
     try {
       const isConnected = await NetInfo.fetch().then(state => state.isConnected);
-      if (!isConnected) {
-        Alert.alert('Error de conexión', 'No hay conexión a Internet');
-        return; // Salir de la función si no hay conexión
+      if (isConnected === false) {
+        Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Sin conexión', text2: 'No hay conexión a Internet.' });
+        return;
       }
-  
-      const response = await axios.post('https://ujed-api.onrender.com/api/users/login', userData);
-      console.log(response.data);
-      const { token, id, roles } = response.data; // Extraer roles de la respuesta
+
+      const response = await axios.post(`${API_URL}/api/users/login`, userData);
+      const { token, id, roles } = response.data;
       if (token && id) {
         await AsyncStorage.setItem('token', token);
         await AsyncStorage.setItem('userId', id);
         await AsyncStorage.setItem('userEmail', email);
-        await AsyncStorage.setItem('isLoggedIn', 'true'); // Establece isLoggedIn como true al iniciar sesión correctamente
+        await AsyncStorage.setItem('isLoggedIn', 'true');
         if (roles && roles.length > 0) {
-          await AsyncStorage.setItem('userRoles', JSON.stringify(roles)); // Guardar roles en AsyncStorage si están disponibles
+          await AsyncStorage.setItem('userRoles', JSON.stringify(roles));
         }
-  
+        Toast.show({ type: 'success', text1: '¡Bienvenido!', text2: `Hola, ${email}` });
         navigateWithToken('Home', token, id);
-        Alert.alert('Bienvenido');
       } else {
-        Alert.alert('Error', 'Token or ID missing in response');
+        Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Error', text2: 'Respuesta inválida del servidor.' });
       }
     } catch (error) {
-      console.error(error.response); // Log the entire error response for debugging
-      if (error.response && error.response.data && error.response.data.message) {
-        const errorMessages = error.response.data.message;
-        errorMessages.forEach(errorMessage => {
-          Alert.alert('Error de inicio de sesión', errorMessage);
-        });
+      if (error.response?.data?.message) {
+        const msgs = error.response.data.message;
+        const text2 = Array.isArray(msgs) ? msgs.join(', ') : msgs;
+        Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Error de inicio de sesión', text2 });
       } else {
-        Alert.alert('Error de inicio de sesión', 'Credenciales incorrectas. Inténtalo de nuevo.');
+        Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Error de inicio de sesión', text2: 'Credenciales incorrectas. Inténtalo de nuevo.' });
       }
+    } finally {
+      setLoading(false);
     }
   }
  
@@ -132,6 +130,8 @@ function LoginPage() {
               placeholder="Email"
               style={styles.textInput}
               onChange={e => setEmail(e.nativeEvent.text)}
+              autoCapitalize="none"
+              keyboardType="email-address"
             />
           </View>
 
@@ -142,7 +142,8 @@ function LoginPage() {
               placeholder="Password"
               style={styles.textInput}
               onChange={e => setPassword(e.nativeEvent.text)}
-              secureTextEntry={!showPassword} // Hide password if showPassword is false
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
               <Feather
@@ -157,9 +158,12 @@ function LoginPage() {
 
         </View>
         <View style={styles.button}>
-          <TouchableOpacity style={styles.inBut} onPress={() => handleSubmit()}>
+          <TouchableOpacity style={styles.inBut} onPress={() => handleSubmit()} disabled={loading}>
             <View>
-              <Text style={styles.textSign}>Ingresar</Text>
+              {loading
+                ? <ActivityIndicator color="white" />
+                : <Text style={styles.textSign}>Ingresar</Text>
+              }
             </View>
           </TouchableOpacity>
 

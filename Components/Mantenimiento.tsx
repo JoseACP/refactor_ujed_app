@@ -43,7 +43,7 @@ import {
   };
 
 function Mantenimiento(props) {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     console.log(props);
     const [userData, setUserData] = useState('');
     const [email, setEmail] = useState('');
@@ -481,7 +481,6 @@ const styles = StyleSheet.create({
     button: {
       alignItems: 'center',
       marginTop: -20,
-      alignItems: 'center',
       textAlign: 'center',
       margin: 20,
     },

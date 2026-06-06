@@ -1,10 +1,11 @@
+import { API_URL } from '../../constants';
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, Image, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Gridresueltas from './Gridresueltas';
 const Resueltas = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState('');
@@ -16,7 +17,7 @@ const Resueltas = () => {
         
         if (storedToken) {
           setToken(storedToken);
-          const response = await fetch(`https://ujed-api.onrender.com/api/reports/department/obras`, {
+          const response = await fetch(`${API_URL}/api/reports/department/obras`, {
             method: 'GET',
             headers: {
               Authorization: `Bearer ${storedToken}`,

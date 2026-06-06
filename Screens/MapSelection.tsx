@@ -3,7 +3,7 @@ import { View, Image, TouchableOpacity, StyleSheet, Dimensions, Text } from 'rea
 import {useNavigation} from '@react-navigation/native';
 
 const MapSelection = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [puntos, setPuntos] = useState([]);
   const [selectedDescription, setSelectedDescription] = useState("Selecciona tu ubicación");

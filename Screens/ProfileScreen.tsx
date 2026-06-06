@@ -11,7 +11,7 @@ import { StyleSheet, Text, View, Button, ScrollView, TouchableOpacity, Image,
   import axios from 'axios';
   import AsyncStorage from '@react-native-async-storage/async-storage';
   function ProfileScreen(props) {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     console.log(props);
     const [email, setEmail] = useState('');
 
@@ -36,7 +36,7 @@ import { StyleSheet, Text, View, Button, ScrollView, TouchableOpacity, Image,
     
     }
 
-    const handleLogout = async (navigation) => {
+    const handleLogout = async () => {
       try {
         // Eliminar los datos de sesión almacenados
         await AsyncStorage.removeItem('token');

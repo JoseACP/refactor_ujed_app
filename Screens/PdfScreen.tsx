@@ -7,9 +7,9 @@ import { shareAsync } from 'expo-sharing';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 const PdfScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const route = useRoute();
-  const { selectedDescription, currentDate, description } = route.params;
+  const { selectedDescription, currentDate, description } = route.params as any;
   console.log(currentDate, selectedDescription, description)
 
   const formattedDate = new Date(currentDate);
@@ -213,7 +213,7 @@ const styles = {
   backIcon: {
     zIndex: 1,
     color: 'white',
-    position: 'absolute',
+    position: 'absolute' as const,
     left: 2,
     margin: 20,
 },

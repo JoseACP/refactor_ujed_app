@@ -23,9 +23,9 @@ import Mantenimiento from '../Components/Mantenimiento';
 
 // import styles from './Login&Register/style'
   function HomeScreen(props) {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     const route = useRoute();
-    const userToken = route.params?.token || ''
+    const userToken = (route.params as any)?.token || ''
     const [email, setEmail] = useState('');
     const [rol, setRol] = useState('');
     const [userRoles, setUserRoles] = useState([]);

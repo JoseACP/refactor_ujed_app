@@ -29,7 +29,7 @@ import ImageContainer from '../Components/obras/imageContainer';
 import ImageContainerf from '../Components/obras/imageContainerf';
 function Obras(props) {
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   console.log(props);
   const [email, setEmail] = useState('');
   const [userData, setUserData] = useState('');
@@ -365,7 +365,6 @@ const styles = StyleSheet.create({
       button: {
         alignItems: 'center',
         marginTop: -20,
-        alignItems: 'center',
         textAlign: 'center',
         margin: 20,
       },

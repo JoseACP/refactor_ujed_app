@@ -1,3 +1,4 @@
+import { API_URL } from '../../constants';
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, Image, Text } from 'react-native';
 import GridComponent from './GridComponent';
@@ -5,7 +6,7 @@ import { useNavigation, useIsFocused } from '@react-navigation/native'; // Impor
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ImageContainer = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const isFocused = useIsFocused(); // Utiliza useIsFocused para detectar si la pantalla está enfocada
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +21,7 @@ const ImageContainer = () => {
         if (storedToken && storedUserId) {
           setToken(storedToken);
           setUserId(storedUserId);
-          const response = await fetch(`https://ujed-api.onrender.com/api/reports/department/obras`, {
+          const response = await fetch(`${API_URL}/api/reports/department/obras`, {
             method: 'GET',
             headers: {
               Authorization: `Bearer ${storedToken}`,

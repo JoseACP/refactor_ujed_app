@@ -29,7 +29,7 @@ import ImageContainer from '../Components/mantenimiento/imageContainer';
 import ImageContainerf from '../Components/mantenimiento/imageContainerf';
 
 function ObrasScreen(props) {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   console.log(props);
   const [userData, setUserData] = useState('');
   function signOut(){
@@ -67,7 +67,7 @@ function ObrasScreen(props) {
 return (
   <ScrollView showsVerticalScrollIndicator={false}>
       <View>
-      <View style={{marginTop:50, marginRightRight:-80 }}>
+      <View style={{marginTop:50, marginRight:-80 }}>
         <TouchableOpacity
             style={[styles.backIcon, {marginTop:20}]}
             onPress={toggleModal}
@@ -127,7 +127,7 @@ return (
 
             
 
-            <Button title="Cerrar sesión" color='red' marginTop='10' onPress={handlePress} />
+            <View style={{marginTop: 10}}><Button title="Cerrar sesión" color='red' onPress={handlePress} /></View>
           </View>
         </Modal>
         </View>
@@ -428,7 +428,6 @@ const styles = StyleSheet.create({
     button: {
       alignItems: 'center',
       marginTop: -20,
-      alignItems: 'center',
       textAlign: 'center',
       margin: 20,
     },

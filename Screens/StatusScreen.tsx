@@ -1,3 +1,4 @@
+import { API_URL } from '../constants';
 import {
     StyleSheet,
     Text,
@@ -22,8 +23,8 @@ import axios from 'axios';
 
 function StatusScreen() {
     
-    const route = useRoute();
-    const navigation = useNavigation();
+    const route = useRoute() as any;
+    const navigation = useNavigation<any>();
     const [token, setToken] = useState(null);
     const [formattedDate, setFormattedDate] = useState('');
 
@@ -46,7 +47,7 @@ function StatusScreen() {
                     Authorization: `Bearer ${token}`
                 }
             };
-            await axios.delete(`https://ujed-api.onrender.com/api/reports/${itemId}`, config);
+            await axios.delete(`${API_URL}/api/reports/${itemId}`, config);
             // Manejar el éxito de la eliminación, por ejemplo, mostrar una alerta
             Alert.alert('Éxito', 'El elemento ha sido eliminado correctamente.');
             navigation.navigate('HomeScreen')
@@ -60,7 +61,7 @@ function StatusScreen() {
     };
     
     function formatDate(dateString) {
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
         const date = new Date(dateString);
         return date.toLocaleDateString('es-ES', options);
       }
@@ -88,7 +89,7 @@ function StatusScreen() {
     
 
       useEffect(() => {
-        const { itemId, imageUrl, estado, description, ubicacion, title, fecha } = route.params;
+        const { itemId, imageUrl, estado, description, ubicacion, title, fecha } = route.params as any;
         console.log('Fecha sin formato:', fecha);
         setFormattedDate(formatDate(fecha));
         console.log('Fecha formateada:', formattedDate);
@@ -247,7 +248,6 @@ function StatusScreen() {
         button: {
             alignItems: 'center',
             marginTop: -20,
-            alignItems: 'center',
             textAlign: 'center',
             margin: 20,
         },
@@ -467,13 +467,6 @@ function StatusScreen() {
             fontWeight: 'bold',
             fontSize: 20,
             margin: 15
-        },
-        button: {
-            alignItems: 'center',
-            marginTop: -20,
-            alignItems: 'center',
-            textAlign: 'center',
-            margin: 20,
         },
         inBut: {
             width: '25%',

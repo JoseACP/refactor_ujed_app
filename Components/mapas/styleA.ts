@@ -95,7 +95,6 @@ const styles = StyleSheet.create({
     button: {
         alignItems: 'center',
         marginTop: -20,
-        alignItems: 'center',
         textAlign: 'center',
         margin: 20,
     },
@@ -106,11 +105,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 15,
         borderRadius: 10,
-    },
-    textSign: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: 'white',
     },
     text_container: {
         marginTop: 20,

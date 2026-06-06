@@ -1,3 +1,4 @@
+import { API_URL } from '../../constants';
 const {
   View,
   Text,
@@ -27,7 +28,7 @@ function RegisterPage({props}) {
   const [passwordVerify, setPasswordVerify] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   function handelSubmit() {
     const userData = {
       name,
@@ -37,7 +38,7 @@ function RegisterPage({props}) {
     };
     if (nameVerify && last_nameVerify && emailVerify && passwordVerify) {
       axios
-        .post('https://ujed-api.onrender.com/api/users/register', userData)
+        .post(`${API_URL}/api/users/register`, userData)
         .then(res => {
           console.log(res.data);
           if (res.data.token) {

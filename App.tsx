@@ -3,6 +3,7 @@ import {
   NavigationContainer,
   useNavigation,
 } from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
 import HomeScreen from './Screens/HomeScreen';
 import ProfileScreen from './Screens/ProfileScreen';
 import UserScreen from './Screens/UserScreen';
@@ -31,7 +32,7 @@ import MapSelection2 from './Screens/MapSelection2';
 
 const StackNav = () => {
   const Stack = createNativeStackNavigator();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   return (
     <Stack.Navigator
       screenOptions={{
@@ -113,7 +114,7 @@ const LoginNav = () => {
   );
 };
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<any>(null);
   async function getData() {
     const data = await AsyncStorage.getItem('isLoggedIn');
     console.log(data, 'at app.jsx');
@@ -122,6 +123,7 @@ function App() {
   return (
     <NavigationContainer>
       {isLoggedIn ? <DrawerNav /> : <LoginNav />}
+      <Toast />
     </NavigationContainer>
   );
 }
