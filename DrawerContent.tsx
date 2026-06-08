@@ -1,189 +1,140 @@
 import React, { useEffect, useState } from 'react';
-import {View, StyleSheet, Text} from 'react-native';
-import {DrawerContentScrollView, DrawerItem} from '@react-navigation/drawer';
-import {Avatar, Title} from 'react-native-paper';
-import {TouchableOpacity} from 'react-native-gesture-handler';
-import {useNavigation} from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from './constants';
 
-const DrawerList = [
-  {icon: 'home-outline', label: 'Home', navigateTo: 'HomeScreen'},
-  {icon: 'account-multiple', label: 'Perfil', navigateTo: 'Profile'},
-  
+const MENU = [
+  { icon: 'home-outline', label: 'Inicio', navigateTo: 'HomeScreen' },
+  { icon: 'account-outline', label: 'Perfil', navigateTo: 'Profile' },
 ];
-const DrawerLayout = ({icon, label, navigateTo}) => {
-  const navigation = useNavigation<any>();
-  // console.log(userData);
-  return (
-    <DrawerItem
-      icon={({color, size}) => <Icon name={icon} color={color} size={size} />}
-      label={label}
-      onPress={() => {
-        navigation.navigate(navigateTo);
-      }}
-    />
-  );
-};
 
-const DrawerItems = props => {
-  return DrawerList.map((el, i) => {
-    return (
-      <DrawerLayout
-        key={i}
-        icon={el.icon}
-        label={el.label}
-        navigateTo={el.navigateTo}
-      />
-    );
-  });
-};
 function DrawerContent(props) {
   const navigation = useNavigation<any>();
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
 
-  function signOut(){
- 
-    navigation.navigate("LoginUser")
-  
-  }
+  useEffect(() => { loadUser(); }, []);
 
-  const handleLogout = async () => {
+  async function loadUser() {
     try {
-      // Eliminar los datos de sesión almacenados
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('userId');
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('userId');
-      // await AsyncStorage.removeItem('userEmail');
-      await AsyncStorage.removeItem('isLoggedIn');
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-    }
-  };
-
-  const handlePress = () => {
-    // Llamando a ambas funciones
-    signOut();
-    handleLogout();
-  };
-
-
-
-
-useEffect(() => {
-  getEmail();
-}, []);
-
-async function getEmail() {
-  try {
-    const userEmail = await AsyncStorage.getItem('userEmail');
-    setEmail(userEmail);
-    console.log(userEmail)
-  } catch (error) {
-    console.error('Error al obtener el email:', error);
+      const e = await AsyncStorage.getItem('userEmail');
+      if (e) {
+        setEmail(e);
+        setName(e.split('@')[0]);
+      }
+    } catch (_) {}
   }
-}
-const obtenerNombreUsuario = (email) => {
-  const partesEmail = email.split('@');
-  return partesEmail[0];
-};
 
-const nombreUsuario = obtenerNombreUsuario(email);
-
+  async function handleLogout() {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await fetch(`${API_URL}/api/auth/sign-out`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+    } catch (_) {}
+    await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'isLoggedIn', 'userRoles']);
+    navigation.navigate('LoginUser');
+  }
 
   return (
-    <View style={{flex: 1}}>
-      <DrawerContentScrollView {...props}>
-        <View style={styles.drawerContent}>
-          <TouchableOpacity activeOpacity={0.8}>
-            <View style={styles.userInfoSection}>
-              <View style={{flexDirection: 'row', marginTop: 15}}>
-                <Avatar.Image
-                  source={{
-                    uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQMAAADCCAMAAAB6zFdcAAAAM1BMVEXFzeD////Byt7L0uPByd7Q1+b7/P3j5/Dv8fbe4+3r7vTFzuDL0+P19/rn6/LZ3urW2+lU+LHUAAAFLklEQVR4nO2dC3arMAxEQXwCcfjsf7XPkLw2tEka5AEziu8CeuKpJVmyLLIskUgkEkdFbsT+HXEQKbNqOPWN59y72D9nd/z/vWqbOv/mozSY9n116vIl1acYg1++G9v+5/rzvMs+QwL/7x/O9a/lT5zL2D9uF7wAzcP1e+pP2AQi4/mZAJ6TfQ3EtY9N4D+jdQ2k6F8K4OltayDFKyP4cghmI6PzVvDnHrDuEqR9UwFPY1IEufw+C72yh8LeIUFOaxSY6K0dFt2qTXDDVJCUi0IBT2vHHmTUSWAnPjgZtBJ4p2BjJ4RIYCSHlCpEAi+CAXMowiSwIIJoguKSE7k5rD8aPWDg3gnKg8EPLrGXEUL5tGC2ijr2OkIIjAlfEJdVBLMNcmprQEnAW09YUzT5C9aNADgbfMGaPQlOgrwj1cAlDZIGGVYD2ktIpAasiRNQgzxpkOektoCMjUkDT+zFaEFqwNqohtSgiL0YHcHlVAMaoCooM6SJo/qK7RGk+yBpkGVBl2w2NAi7aEwamNEAWE5MGiQNkgZJg6RB0sCEBoj+C3YN0j5IGkyks3LKnSegdaSkQdIgaUCtwcf7RJHy02OjVG3/+knvSlxJd+uK7Emb6eqOrQVBoJvgCtu16xYasF23QXsPWDVI+yArN9CALTyW6LhAqAE8NuaEcQH2fOMbtkNS+e7IC8MaYIuJM3TnRGwxcYbvPQ+0eDBD95TFIRv3rwyx17Qa/EGRbmqSAz1xvSP2ktaDvW3MOV9xoJ0i43tftEPgc4n4U1Ls9ajAbgTOkSCh02AW1GxJ4w2gCKwSIAspF0pLmIB5BNaXvhnwnMSXMn6DqrBzBoUrqKoiXdp8B6qqWMVeSADyzijhNyDeBiinyOwSUc95uAemYZ66sl0wLYGcFPmK6gsgCTRzZJxAlJe5TQFyQiA3hQxRVuSOChPBXrEW2trBf/RDts1sg+C8iXZA1oKwc9IY++dDCDojUKcKd5T67JF6ou4C9SHBhjO4os2hiWupv1Hm0JY00LpFKx5xQmsLpjRQdisy19R/om3MsaSB9rxsSgOdBKY00E5SZOxBeoa2kGJJA+01gyEN1JmjJQ20jxnYq+p3qPNGQxqo66qtHQ3UfUlJA0MalKJ+8NnyPfh/hFzOnbpFr6vP7JeNGaALw0BJMfzemT4+IhqSYq8hFESDInNj3ky4BPSXroieLPZDAuI7nuROsUS84iAvqKmT5gWxVxEIQgJuY8BsA+6NgPmyMXVkQHXuM+cMuBEIjO98Z4K78r5pOFtVpWiRn7Qd+aop5QU9AqJuMyYVRKoNJkT58OD/cuy1vYUX4LTBvLgrzVAcXwYpthPgSjcc2ybkgjoRvKQvjqrCVl7gEU11RJMQGTeYFvicbjyaCnsrMFG3R1JBsnZjR/hEhf4gJiHi0NOg1nCOL8OejvAJ3RBTBScy7O4GHlCfXCwV4hrBkvMlQmYpZXQjWLJ7sJTyEEawZNfMsowUC/+m38kxiNtgbDCMZgfHIMUuaVEA3cYnBnx5aAu8e9xMASkYFJjoNpo/K+7oVnBPg68xuKw8zoHoPXp0pCzHg0bDV0CTa3EsjmBJjUunsB9u35Ua08wkGecmuIEIEVIReoIFwTf38JHhEQgcxuqOlx4qCBFBCnY7uKH/uhV0SHRU9CNFUO1EB0A9TMKIIczoggP+QxpRUQ0cM+MMrmiezG7x0bmoKDYCZhLqgVjf8WvhfLhkfaPnFt/di8zq6XNbfIczMqsHDW3xTdrYPFvrP7kiUsVMV4ODAAAAAElFTkSuQmCC',
-                  }}
-                  size={50}
-                  style={{marginTop: 5}}
-                />
-                <View style={{marginLeft: 10, flexDirection: 'column'}}>
-                  <Title style={styles.title}> {nombreUsuario}</Title>
-                  <Text style={styles.caption} numberOfLines={1}>
-                    {email}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </TouchableOpacity>
-          <View style={styles.drawerSection}>
-            <DrawerItems />
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
           </View>
+          <Text style={styles.name}>{name}</Text>
+          <Text style={styles.email} numberOfLines={1}>{email}</Text>
         </View>
+
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Menu */}
+        {MENU.map((item, i) => (
+          <DrawerItem
+            key={i}
+            icon={({ color, size }) => <MaterialCommunityIcons name={item.icon as any} color={color} size={size} />}
+            label={item.label}
+            labelStyle={styles.menuLabel}
+            onPress={() => navigation.navigate(item.navigateTo)}
+          />
+        ))}
       </DrawerContentScrollView>
-      <View style={styles.bottomDrawerSection}>
-        <DrawerItem
-         onPress={handlePress}
-          icon={({color, size}) => (
-            <Icon name="exit-to-app" color={color} size={size} />
-          )}
-          label="Cerrar sesión"
-        />
+
+      {/* Logout */}
+      <View style={styles.footer}>
+        <View style={styles.divider} />
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Ionicons name="exit-outline" size={22} color="#ce112d" />
+          <Text style={styles.logoutText}>Cerrar sesión</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
 }
+
 export default DrawerContent;
 
 const styles = StyleSheet.create({
-  drawerContent: {
-    flex: 1,
+  header: {
+    backgroundColor: '#ce112d',
+    paddingTop: 60,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
   },
-  userInfoSection: {
-    paddingLeft: 20,
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  title: {
-    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;',
-    fontSize: 19,
-    marginTop: 3,
+  avatarText: {
+    color: 'white',
+    fontSize: 26,
     fontWeight: 'bold',
   },
-  caption: {
+  name: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
+    textTransform: 'capitalize',
+  },
+  email: {
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 13,
-    lineHeight: 14,
-    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;',
-
-    width: '100%',
+    marginTop: 2,
   },
-  row: {
-    marginTop: 20,
+  divider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginVertical: 4,
+  },
+  menuLabel: {
+    fontSize: 15,
+    color: '#374151',
+  },
+  footer: {
+    paddingBottom: 24,
+  },
+  logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 12,
   },
-  section: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  paragraph: {
-    fontWeight: 'bold',
-    marginRight: 3,
-  },
-  drawerSection: {
-    marginTop: 15,
-    borderBottomWidth: 0,
-    borderBottomColor: '#dedede',
-  },
-  bottomDrawerSection: {
-    marginBottom: 15,
-    borderTopColor: '#dedede',
-    borderTopWidth: 1,
-    borderBottomColor: '#dedede',
-    borderBottomWidth: 1,
-  },
-  preference: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+  logoutText: {
+    color: '#ce112d',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

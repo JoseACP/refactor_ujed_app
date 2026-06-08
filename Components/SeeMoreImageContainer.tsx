@@ -1,12 +1,13 @@
 
 
 import { API_URL } from '../constants';
-import { View, ActivityIndicator, Image, Text} from 'react-native';
+import { View, Image, Text} from 'react-native';
 import ReportGridComponent from './ReportGridComponent';
 // import GridComponent from './GridComponent';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect } from 'react';
+import { ListSkeleton } from './Skeleton';
 
 const SeeMoreImageContainer = () => {
   const navigation = useNavigation<any>();
@@ -67,13 +68,7 @@ const SeeMoreImageContainer = () => {
     });
   };
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
+  if (loading) return <ListSkeleton />;
   if (data.length === 0) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

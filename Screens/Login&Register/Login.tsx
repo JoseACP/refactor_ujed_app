@@ -1,5 +1,4 @@
-import { API_URL } from '../../constants';
-const {
+import {
   View,
   Text,
   Image,
@@ -7,190 +6,126 @@ const {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-} = require('react-native');
-import {useNavigation} from '@react-navigation/native';
-import styles from './style';
-import Feather from 'react-native-vector-icons/Feather';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import {useEffect, useState} from 'react';
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useState } from 'react';
 import axios from 'axios';
 import NetInfo from '@react-native-community/netinfo';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Feather, FontAwesome } from '@expo/vector-icons';
+import { API_URL } from '../../constants';
 
 function LoginPage() {
   const navigation = useNavigation<any>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [passwordVerify, setPasswordVerify] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  
-  useEffect(() => {
-    getUserId();
-  }, []);
-
-  async function getToken() {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      return token;
-    } catch (error) {
-      console.error('Error al obtener el token:', error);
-      return null;
-    }
-  }
-
-  async function getUserId() {
-    try {
-      const userId = await AsyncStorage.getItem('userId');
-      console.log('User ID:', userId);
-      return userId;
-    } catch (error) {
-      console.error('Error al obtener el ID de usuario:', error);
-      return null;
-    }
-  }
-
-  async function navigateWithToken(screenName, token, id) {
-    navigation.navigate(screenName, { token, userId: id, email });
-  }
 
   async function handleSubmit() {
-    const userData = { email, password };
     setLoading(true);
     try {
-      const isConnected = await NetInfo.fetch().then(state => state.isConnected);
+      const isConnected = await NetInfo.fetch().then(s => s.isConnected);
       if (isConnected === false) {
         Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Sin conexión', text2: 'No hay conexión a Internet.' });
         return;
       }
 
-      const response = await axios.post(`${API_URL}/api/users/login`, userData);
-      const { token, id, roles } = response.data;
-      if (token && id) {
+      const response = await axios.post(`${API_URL}/api/auth/sign-in/email`, { email, password });
+      const { token, user } = response.data;
+
+      if (token && user?.id) {
         await AsyncStorage.setItem('token', token);
-        await AsyncStorage.setItem('userId', id);
+        await AsyncStorage.setItem('userId', user.id);
         await AsyncStorage.setItem('userEmail', email);
         await AsyncStorage.setItem('isLoggedIn', 'true');
-        if (roles && roles.length > 0) {
-          await AsyncStorage.setItem('userRoles', JSON.stringify(roles));
+        if (user.roles?.length > 0) {
+          await AsyncStorage.setItem('userRoles', JSON.stringify(user.roles));
         }
         Toast.show({ type: 'success', text1: '¡Bienvenido!', text2: `Hola, ${email}` });
-        navigateWithToken('Home', token, id);
+        navigation.navigate('Home', { token, userId: user.id, email });
       } else {
         Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Error', text2: 'Respuesta inválida del servidor.' });
       }
     } catch (error) {
-      if (error.response?.data?.message) {
-        const msgs = error.response.data.message;
-        const text2 = Array.isArray(msgs) ? msgs.join(', ') : msgs;
-        Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Error de inicio de sesión', text2 });
-      } else {
-        Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Error de inicio de sesión', text2: 'Credenciales incorrectas. Inténtalo de nuevo.' });
-      }
+      const msg = error.response?.data?.message;
+      const text2 = Array.isArray(msg) ? msg.join(', ') : (msg || 'Credenciales incorrectas. Inténtalo de nuevo.');
+      Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Error de inicio de sesión', text2 });
     } finally {
       setLoading(false);
     }
   }
- 
-  async function getData() {
-    const data = await AsyncStorage.getItem('isLoggedIn');
-    
-    console.log(data, 'at app.jsx');
-  
-  }
-  useEffect(()=>{
-    getData();
-    console.log("Hii");
-  },[])
 
   return (
     <ScrollView
-      contentContainerStyle={{flexGrow: 1}}
-      style={{backgroundColor: 'white'}}
-      keyboardShouldPersistTaps={'always'}>
-      <View>
-        <View style={styles.logoContainer}>
-          <Image
-            style={styles.logo}
-            source={require('../../assets/mainLogo.png')}
+      contentContainerStyle={{ flexGrow: 1 }}
+      style={{ backgroundColor: 'white' }}
+      keyboardShouldPersistTaps="always"
+    >
+      <View style={{ alignItems: 'center', marginTop: 40 }}>
+        <Image
+          style={{ width: 180, height: 180, borderRadius: 12, borderWidth: 1, borderColor: '#ce112d', marginTop: 24 }}
+          source={require('../../assets/mainLogo.png')}
+        />
+      </View>
+
+      <View style={{ alignItems: 'center', marginTop: 24 }}>
+        <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1f2937' }}>Iniciar sesión</Text>
+      </View>
+
+      <View style={{ marginHorizontal: 24, marginTop: 32, gap: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderWidth: 1, borderColor: '#d1d5db', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 }}>
+          <FontAwesome name="user-o" size={18} color="#ce112d" />
+          <TextInput
+            style={{ flex: 1, marginLeft: 12, fontSize: 16, color: '#1f2937' }}
+            placeholder="Correo electrónico"
+            placeholderTextColor="#9ca3af"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
           />
         </View>
-        {/* Formulario */}
-        <View style={styles.loginContainer}>
-          <Text style={styles.text_header}>INICIAR SESION</Text>
-          <View style={styles.action}>
-            <FontAwesome
-              name="user-o"
-              color="#ce112d"
-              style={styles.smallIcon}
-            />
-            <TextInput
-              placeholder="Email"
-              style={styles.textInput}
-              onChange={e => setEmail(e.nativeEvent.text)}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-          </View>
 
-          {/* Password */}
-          <View style={styles.action}>
-            <FontAwesome name="lock" color="#ce112d" style={styles.smallIcon} />
-            <TextInput
-              placeholder="Password"
-              style={styles.textInput}
-              onChange={e => setPassword(e.nativeEvent.text)}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Feather
-                name={showPassword ? 'eye' : 'eye-off'} // Toggle between eye and eye-off icons
-                style={{ marginRight: -10 }}
-                color="#ce112d"
-                size={23}
-              />
-            </TouchableOpacity>
-          </View>
-
-
-        </View>
-        <View style={styles.button}>
-          <TouchableOpacity style={styles.inBut} onPress={() => handleSubmit()} disabled={loading}>
-            <View>
-              {loading
-                ? <ActivityIndicator color="white" />
-                : <Text style={styles.textSign}>Ingresar</Text>
-              }
-            </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderWidth: 1, borderColor: '#d1d5db', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14 }}>
+          <FontAwesome name="lock" size={18} color="#ce112d" />
+          <TextInput
+            style={{ flex: 1, marginLeft: 12, fontSize: 16, color: '#1f2937' }}
+            placeholder="Contraseña"
+            placeholderTextColor="#9ca3af"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+          />
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <Feather name={showPassword ? 'eye' : 'eye-off'} size={20} color="#9ca3af" />
           </TouchableOpacity>
-
-          <View style={{padding: 15}}>
-            <Text style={{fontSize: 14, fontWeight: 'bold', color: '#919191'}}>
-              ¿Todavia no tienes una cuenta? <TouchableOpacity
-                onPress={() => {
-                  navigation.navigate('Register');
-                }}>
-                  <Text style={styles.bottomText}>Registrarte</Text>
-                
-              </TouchableOpacity>
-            </Text>
-          </View>
-          <View style={styles.bottomButton}>
-            <View
-              style={{
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-
-            </View>
-           
-          </View>
         </View>
+      </View>
+
+      <View style={{ marginHorizontal: 24, marginTop: 32 }}>
+        <TouchableOpacity
+          style={{ backgroundColor: '#ce112d', borderRadius: 50, paddingVertical: 16, alignItems: 'center', opacity: loading ? 0.7 : 1 }}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading
+            ? <ActivityIndicator color="white" />
+            : <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>Ingresar</Text>
+          }
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24, marginBottom: 40 }}>
+        <Text style={{ color: '#6b7280', fontSize: 14 }}>¿Todavía no tienes una cuenta? </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+          <Text style={{ color: '#ce112d', fontSize: 14, fontWeight: 'bold' }}>Registrarte</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
+
 export default LoginPage;

@@ -1,535 +1,550 @@
 import { API_URL } from '../constants';
+import React, { useState, useEffect } from 'react';
 import {
-    StyleSheet,
-    Text,
-    View,
-    Button,
-    ScrollView,
-    TouchableOpacity,
-    Image,
-    TextInput,
-    SafeAreaView,
-    Alert,
-    Dimensions
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Alert,
+  Dimensions,
 } from 'react-native';
-import React, { useState, useEffect }  from 'react';
-import {useNavigation, useRoute} from '@react-navigation/native';
-import TrackingScreen from '../Components/TrackingScreen';
-import { Ionicons, AntDesign, Feather, FontAwesome5 } from '@expo/vector-icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AntDesign, Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import ImageSlider from '../Components/imageSlider';
-import Modal from "react-native-modal";
+import Modal from 'react-native-modal';
 import axios from 'axios';
 
+const { width } = Dimensions.get('window');
+
+const STATUS_MAP: Record<string, { label: string; bg: string; text: string; step: number }> = {
+  EnEspera:   { label: 'En espera',  bg: '#fef3c7', text: '#92400e', step: 1 },
+  Asignado:   { label: 'Asignado',   bg: '#dbeafe', text: '#1e40af', step: 2 },
+  Resuelto:   { label: 'Resuelto',   bg: '#d1fae5', text: '#065f46', step: 3 },
+  Descartado: { label: 'Descartado', bg: '#fee2e2', text: '#991b1b', step: -1 },
+};
+
+const STEPS = [
+  { key: 'EnEspera', label: 'En espera' },
+  { key: 'Asignado', label: 'Asignado' },
+  { key: 'Resuelto', label: 'Resuelto' },
+];
+
+function formatDate(dateString?: string): string {
+  if (!dateString) return 'Sin fecha';
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return 'Sin fecha';
+  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function StatusTracker({ estado }: { estado?: string }) {
+  const s = STATUS_MAP[estado ?? ''];
+  const isDiscarded = estado === 'Descartado';
+  const currentStep = s?.step ?? 0;
+
+  return (
+    <View style={tk.wrap}>
+      <Text style={tk.title}>Estado del reporte</Text>
+      {isDiscarded ? (
+        <View style={tk.discardedBadge}>
+          <Feather name="x-circle" size={16} color="#991b1b" />
+          <Text style={tk.discardedText}>Reporte descartado</Text>
+        </View>
+      ) : (
+        <View style={tk.stepsRow}>
+          {STEPS.map((step, i) => {
+            const done = currentStep >= i + 1;
+            const active = currentStep === i + 1;
+            return (
+              <React.Fragment key={step.key}>
+                <View style={tk.stepCol}>
+                  <View style={[tk.dot, done && tk.dotDone, active && tk.dotActive]}>
+                    {done && !active && <Feather name="check" size={12} color="white" />}
+                    {active && <View style={tk.dotPulse} />}
+                  </View>
+                  <Text style={[tk.stepLabel, done && tk.stepLabelDone, active && tk.stepLabelActive]}>
+                    {step.label}
+                  </Text>
+                </View>
+                {i < STEPS.length - 1 && (
+                  <View style={[tk.connector, currentStep > i + 1 && tk.connectorDone]} />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
 function StatusScreen() {
-    
-    const route = useRoute() as any;
-    const navigation = useNavigation<any>();
-    const [token, setToken] = useState(null);
-    const [formattedDate, setFormattedDate] = useState('');
+  const route = useRoute() as any;
+  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
+  const [token, setToken] = useState<string | null>(null);
+  const [isModalVisible, setModalVisible] = useState(false);
 
-    const [isModalVisible, setModalVisible] = useState(false);
+  const { itemId, imageUrl, estado, description, ubicacion, title, fecha } = route.params as any;
 
-  const toggleModal = () => {
-    setModalVisible(!isModalVisible);
+  const statusInfo = STATUS_MAP[estado ?? ''];
+  const dateStr = formatDate(fecha);
+
+  useEffect(() => {
+    AsyncStorage.getItem('token').then(t => t && setToken(t));
+  }, []);
+
+  const handleDelete = async () => {
+    if (!token) {
+      Alert.alert('Error', 'No hay sesión activa.');
+      return;
+    }
+    try {
+      await axios.delete(`${API_URL}/api/reports/${itemId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setModalVisible(false);
+      Alert.alert('Eliminado', 'El reporte fue eliminado correctamente.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch {
+      setModalVisible(false);
+      Alert.alert('Error', 'No se pudo eliminar el reporte. Intenta de nuevo.');
+    }
   };
 
-
-    const handleDelete = async () => {
-        try {
-            const { itemId } = route.params;
-            if (!token) {
-                console.error('No se ha obtenido ningún token.');
-                return;
-            }
-            const config = {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            };
-            await axios.delete(`${API_URL}/api/reports/${itemId}`, config);
-            // Manejar el éxito de la eliminación, por ejemplo, mostrar una alerta
-            Alert.alert('Éxito', 'El elemento ha sido eliminado correctamente.');
-            navigation.navigate('HomeScreen')
-            // Puedes navegar a otra pantalla o realizar otras acciones después de la eliminación
-        } catch (error) {
-            // Manejar errores en la solicitud de eliminación
-            console.error('Error al eliminar el elemento:', error);
-            // Mostrar una alerta u otras acciones en caso de error
-            Alert.alert('Error', 'Ocurrió un error al intentar eliminar el elemento.');
-        }
-    };
-    
-    function formatDate(dateString) {
-        const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-        const date = new Date(dateString);
-        return date.toLocaleDateString('es-ES', options);
-      }
-    
-
-    useEffect(() => {
-        // Función para obtener el token almacenado en AsyncStorage
-        async function getTokenFromStorage() {
-          try {
-            const storedToken = await AsyncStorage.getItem('token');
-            if (storedToken !== null) {
-              setToken(storedToken);
-              console.log('Token almacenado en AsyncStorage:', storedToken);
-            }else{
-              console.log('No se encontró ningún token en AsyncStorage.');
-            }
-          } catch (error) {
-            console.error('Error al obtener el token:', error);
-          }
-        }
-    
-        // Llama a la función para obtener el token al montar la pantalla
-        getTokenFromStorage();
-      }, []);
-    
-
-      useEffect(() => {
-        const { itemId, imageUrl, estado, description, ubicacion, title, fecha } = route.params as any;
-        console.log('Fecha sin formato:', fecha);
-        setFormattedDate(formatDate(fecha));
-        console.log('Fecha formateada:', formattedDate);
-      
-        console.log('ID:', itemId);
-        console.log('Titulo', title)
-        console.log('URL de la imagen:', imageUrl);
-        console.log('Estado:', estado);
-        console.log('Descripcion:', description);
-        console.log('Ubicación', ubicacion);
-        console.log('Fecha', fecha);
-      
-        // Dividir la información de ubicación antes y después del guion "-"
-        // const ubicacionParts = ubicacion.split(' - ');
-       
-       
-      }, []);
-      
   return (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          
-            <View style={{position: 'relative' , marginTop:'1%'}}>
-            <TouchableOpacity
-                        style={styles.backIcon}
-                        onPress={()=> navigation.goBack()}
-                    >
-                        <AntDesign name="arrowleft" size={30} color="#ce112d" />
-                    </TouchableOpacity>
-             
-            </View>
-          <View style={{ flex: 1 }}>
-             
+    <View style={styles.root}>
+      {/* Header con safe area */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <AntDesign name="arrowleft" size={22} color="#ce112d" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Detalle del reporte</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
-              <Modal isVisible={isModalVisible}>
-                  <View style={{ flex: 1 }}>
-                      <View style={styles.delete}>
-                          <Text style={{ color: 'white', fontSize: 31, fontWeight: 'bold' }}>¿Estas seguro de borrar este reporte?</Text>
-                          <View style={{ flexDirection: 'row', marginTop: '10%'}}>
-                              <TouchableOpacity style={{ marginRight: '40%' }} onPress={handleDelete}>
-                              <Feather name="check" size={40} color="white" />
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                              onPress={toggleModal}
-                              >
-                              <Feather name="x" size={40} color="white" />
-                              </TouchableOpacity>
-                          </View>
-                          {/* <Button title="Hide modal" onPress={toggleModal} /> */}
-                      </View>
-
-
-                  </View>
-              </Modal>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* Imagen hero */}
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.heroImage} resizeMode="cover" />
+        ) : (
+          <View style={styles.imageFallback}>
+            <Feather name="image" size={40} color="#9ca3af" />
+            <Text style={styles.imageFallbackText}>Sin imagen</Text>
           </View>
-            
-            <View style={{
-                    alignItems: 'center',
-                    marginTop: '8%'
-                }}>
-                    <Text style={styles.text_header}>Información del reporte </Text>
-                </View>
-            
-                <View
-            style={{
-                marginTop:13,
-                padding: 12
-                
-            }}
-            >
-                <Text style={styles.text1}>Título: </Text>
-                <Text style={{marginTop: 3}}>{route.params.title}</Text>
+        )}
 
-            </View>
-            <View
-            style={{
-                marginTop:13,
-                padding: 12
-                
-            }}
-            >
-                <Text style={styles.text1}>Ubicación</Text>
-                <Text style={{marginTop: 3}}>Facultad: {route.params.ubicacion.faculty} </Text>
-                <Text style={{marginTop: 3}}>Edicificio: {route.params.ubicacion.building} </Text>
-                <Text style={{marginTop: 3}}>Salon: {route.params.ubicacion.classroom} </Text>
-                
-
-            </View>
-            <View
-            style={{
-                marginTop:1,
-                padding: 12
-            }}
-            >
-                <Text style={styles.text1}>Descripción: </Text>
-                <Text style={{marginTop: 3}}>{route.params.description}</Text>
-            </View>
-            <View
-             style={{
-                marginTop:1,
-                padding: 12
-            }}
-            >
-                <Text style={styles.text1}>Fecha: </Text>
-                <Text style={{marginTop: 3}}>{formattedDate}</Text>
-            </View>
-            
-            <View>
-                <TrackingScreen estado={route.params.estado}/>
-            </View>
-            <View 
-            style={{
-                marginTop: 20,
-                alignItems: 'center'
-            }}
-            >
-                <Image source={{ uri: route.params.imageUrl}} style={styles.image} />
-            </View>
-
-          {/* Botones */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: '10%',paddingHorizontal: 44 }}>
-              <TouchableOpacity style={[styles.button, styles.inBut]} onPress={toggleModal}>
-                  <Feather name="trash" size={50} color="white" />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.button, styles.inBut, { marginLeft: -20 }]} onPress={toggleModal}>
-              <Feather name="upload" size={50} color="white" />
-              </TouchableOpacity>
+        {/* Fila estado + fecha */}
+        <View style={styles.metaRow}>
+          <View style={[styles.statusBadge, statusInfo && { backgroundColor: statusInfo.bg }]}>
+            <Text style={[styles.statusBadgeText, statusInfo && { color: statusInfo.text }]}>
+              {statusInfo?.label ?? estado ?? 'Sin estado'}
+            </Text>
           </View>
+          <View style={styles.dateChip}>
+            <Feather name="calendar" size={12} color="#6b7280" />
+            <Text style={styles.dateText}>{dateStr}</Text>
+          </View>
+        </View>
 
-          {/* end Botones */}
+        {/* Tarjeta de información */}
+        <View style={styles.card}>
+          <Text style={styles.fieldLabel}>Título</Text>
+          <Text style={styles.fieldValue}>{title || 'Sin título'}</Text>
 
-          {/* //      */}
+          <View style={styles.divider} />
+
+          <Text style={styles.fieldLabel}>Descripción</Text>
+          <Text style={styles.fieldValue}>{description || 'Sin descripción'}</Text>
+
+          <View style={styles.divider} />
+
+          <Text style={styles.fieldLabel}>Ubicación</Text>
+          <View style={styles.locationRow}>
+            <View style={styles.locationPill}>
+              <Text style={styles.locationPillLabel}>Facultad</Text>
+              <Text style={styles.locationPillValue} numberOfLines={2}>
+                {ubicacion?.faculty || '—'}
+              </Text>
+            </View>
+            <View style={styles.locationPill}>
+              <Text style={styles.locationPillLabel}>Edificio</Text>
+              <Text style={styles.locationPillValue} numberOfLines={2}>
+                {ubicacion?.building || '—'}
+              </Text>
+            </View>
+            <View style={styles.locationPill}>
+              <Text style={styles.locationPillLabel}>Salón</Text>
+              <Text style={styles.locationPillValue} numberOfLines={2}>
+                {ubicacion?.classroom || '—'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Tracker de estado */}
+        <StatusTracker estado={estado} />
+
+        {/* Botón eliminar */}
+        <TouchableOpacity
+          style={styles.deleteBtn}
+          onPress={() => setModalVisible(true)}
+          activeOpacity={0.85}
+        >
+          <Feather name="trash-2" size={18} color="white" />
+          <Text style={styles.deleteBtnText}>Eliminar reporte</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Modal confirmación */}
+      <Modal
+        isVisible={isModalVisible}
+        onBackdropPress={() => setModalVisible(false)}
+        backdropOpacity={0.4}
+        animationIn="fadeInUp"
+        animationOut="fadeOutDown"
+        animationInTiming={200}
+        animationOutTiming={200}
+      >
+        <View style={styles.modal}>
+          <View style={styles.modalIconWrap}>
+            <Feather name="trash-2" size={28} color="#ce112d" />
+          </View>
+          <Text style={styles.modalTitle}>¿Eliminar reporte?</Text>
+          <Text style={styles.modalSubtitle}>
+            Esta acción es permanente y no se puede deshacer.
+          </Text>
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={[styles.modalBtn, styles.modalBtnCancel]}
+              onPress={() => setModalVisible(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalBtn, styles.modalBtnDelete]}
+              onPress={handleDelete}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.modalDeleteText}>Eliminar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
-    }
+}
 
-    const styles = StyleSheet.create({
-        delete:{
-            backgroundColor:'#920A0A', 
-            marginTop:'70%', 
-            height:'30%', 
-            borderRadius:20, 
-            width:'98%',
-            padding: 30,
-            alignItems: 'center'
+const tk = StyleSheet.create({
+  wrap: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  title: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 20,
+  },
+  stepsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  stepCol: {
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 70,
+  },
+  dot: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#e5e7eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dotDone: {
+    backgroundColor: '#ce112d',
+  },
+  dotActive: {
+    backgroundColor: '#ce112d',
+    shadowColor: '#ce112d',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.45,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  dotPulse: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'white',
+  },
+  connector: {
+    flex: 1,
+    height: 3,
+    backgroundColor: '#e5e7eb',
+    marginBottom: 22,
+    borderRadius: 2,
+  },
+  connectorDone: {
+    backgroundColor: '#ce112d',
+  },
+  stepLabel: {
+    fontSize: 11,
+    color: '#9ca3af',
+    textAlign: 'center',
+    maxWidth: 68,
+  },
+  stepLabelDone: {
+    color: '#374151',
+    fontWeight: '600',
+  },
+  stepLabelActive: {
+    color: '#ce112d',
+    fontWeight: '700',
+  },
+  discardedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  discardedText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#991b1b',
+  },
+});
 
-            
-        },
-        editIcon: {
-            zIndex: 1,
-            color: 'white',
-            position: 'absolute',
-            right: 2,
-            margin: 15,
-        },
-        button: {
-            alignItems: 'center',
-            marginTop: -20,
-            textAlign: 'center',
-            margin: 20,
-        },
-        logoContainer: {
-            marginBottom: -12,
-            justifyContent: 'center',
-            alignItems: 'center',
-          },
-          logo: {
-            height: 260,
-            width: 260,
-            marginTop: 50,
-            marginBottom:40,
-          },
-        backIcon: {
-            zIndex: 1,
-            color: 'white',
-            position: 'absolute',
-            left: 2,
-            margin: 15,
-        },
-        avatar: {
-            borderRadius: 100,
-            marginTop: -250,
-            // marginLeft: 105,
-            backgroundColor: 'white',
-            height: 200,
-            width: 200,
-            padding: 10,
-            borderColor: '#ccc',
-            borderWidth: 1,
-            elevation: 4,
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        // 420475
-        nameText: {
-            color: 'black',
-            fontSize: 28,
-    
-            fontStyle: 'normal',
-            fontFamily: 'Open Sans',
-            fontWeight: 'bold',
-            textAlign: 'center',
-        },
-        bookCountMain: {
-            borderColor: '#b0b0b0',
-            borderWidth: 1,
-            marginTop: 18,
-            marginHorizontal: 20,
-    
-            borderRadius: 20,
-            flexDirection: 'row',
-            width: '88%',
-        },
-        bookCount: {
-            width: '50%',
-            borderColor: '#b0b0b0',
-            borderRightWidth: 1,
-            flexDirection: 'column',
-            paddingHorizontal: 10,
-            paddingVertical: 15,
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        bookCountNum: {
-            color: '#5D01AA',
-            fontSize: 34,
-            fontWeight: '800',
-        },
-        bookCountText: { color: '#b3b3b3', fontSize: 14, fontWeight: '500' },
-        infoMain: {
-            marginTop: 10,
-        },
-        infoCont: {
-            width: '100%',
-            flexDirection: 'row',
-        },
-        infoIconCont: {
-            justifyContent: 'center',
-            height: 40,
-            width: 40,
-            borderRadius: 20,
-    
-            alignItems: 'center',
-            elevation: -5,
-            borderColor: 'black',
-            backgroundColor: 'black',
-        },
-    
-        infoText: {
-            width: '80%',
-            flexDirection: 'column',
-            marginLeft: 25,
-            borderBottomWidth: 1,
-            paddingBottom: 10,
-            borderColor: '#e6e6e6',
-        },
-        infoSmall_Text: {
-            fontSize: 13,
-            color: '#b3b3b3',
-            fontWeight: '500',
-        },
-        infoLarge_Text: {
-            color: 'black',
-            fontSize: 18,
-            fontWeight: '600',
-        },
-        booksUploadedMain: {
-            paddingHorizontal: 10,
-            paddingBottom: 30,
-            marginTop: 20,
-        },
-        flatlistDiv: {
-            borderRadius: 15,
-            paddingHorizontal: 10,
-        },
-        booksUploadedText: {
-            fontSize: 26,
-            color: 'black',
-            fontWeight: '700',
-            paddingLeft: 20,
-            paddingBottom: 8,
-        },
-        booksUploadedCard: {
-            flexDirection: 'row',
-            width: '100%',
-            marginTop: 9,
-            marginBottom: 9,
-    
-            backgroundColor: '#f2f2f2',
-            paddingHorizontal: 15,
-            paddingVertical: 15,
-            borderRadius: 15,
-            elevation: 3,
-        },
-        booksUploadedImgDiv: {
-            width: '28%',
-        },
-        booksUploadedImg: {
-            width: '100%',
-            height: 120,
-            borderRadius: 15,
-        },
-        cardMidDiv: {
-            paddingHorizontal: 10,
-            width: '55%',
-            position: 'relative',
-        },
-        approvedText: {
-            fontSize: 12,
-            color: '#0d7313',
-            fontWeight: '600',
-            marginLeft: 5,
-        },
-        cardBookNameText: {
-            fontSize: 24,
-            color: 'black',
-            fontWeight: '700',
-            marginTop: 2,
-        },
-        cardBookAuthor: {
-            fontSize: 14,
-            color: 'black',
-            fontWeight: '600',
-            marginTop: 1,
-        },
-        cardRating: {
-            position: 'absolute',
-            bottom: 0,
-            paddingHorizontal: 10,
-            flexDirection: 'row',
-        },
-        cardRatingCount: {
-            fontSize: 14,
-            marginTop: -2,
-            paddingLeft: 4,
-            color: '#303030',
-        },
-        cardEditDiv: {
-            width: '17%',
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        cardEditBtn: {
-            height: 44,
-            width: 44,
-            backgroundColor: '#ce112d',
-            borderRadius: 22,
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        footer: {
-            padding: 10,
-            justifyContent: 'center',
-    
-            flexDirection: 'row',
-        },
-        loadMoreBtn: {
-            padding: 10,
-            backgroundColor: '#ce112d',
-            borderRadius: 4,
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            color: 'white',
-            paddingHorizontal: 20,
-        },
-        btnText: {
-            color: 'white',
-            fontSize: 15,
-            textAlign: 'center',
-            fontWeight: '600',
-        },
-        text_header: {
-            color: '#000000',
-            fontWeight: 'bold',
-            fontSize: 20,
-            margin: 15
-        },
-        inBut: {
-            width: '25%',
-            backgroundColor: '#ce112d',
-            alignItems: 'center',
-            paddingHorizontal: 15,
-            paddingVertical: 15,
-            borderRadius: 10,
-        },
-        textSign: {
-            fontSize: 18,
-            fontWeight: 'bold',
-            color: 'white',
-        },
-        text_container: {
-            marginTop: 20,
-            marginLeft: 5,
-            flexDirection: 'row',
-            alignItems: 'center', // Alinea verticalmente los elementos en el centro
-        },
-        text1: {
-            fontSize: 17,
-            fontWeight: '700',
-        },
-        text2: {
-            fontSize: 14, // Ajusta el tamaño del segundo texto
-            color: 'blue', // Cambia el color a azul
-            marginLeft: 10, // Añade un espacio entre los textos
-        },
-        loginContainer: {
-            marginTop: 2,
-            // backgroundColor: '#fff',
-            borderTopLeftRadius: 30,
-            borderTopRightRadius: 30,
-            paddingHorizontal: 50,
-            paddingVertical: 40,
-            margin: 15
-        },
-        textInput: {
-            flex: 4,
-            marginTop: -12,
-            color: '#000000',
-    
-        },
-        action: {
-            flexDirection: 'row',
-            paddingTop: 14,
-            paddingBottom: 3,
-            marginTop: 30,
-    
-            paddingHorizontal: 10,
-    
-            borderWidth: 1,
-            borderColor: '#ce112d',
-            borderRadius: 50,
-        },
-        image: {
-            width: 220,
-            height: 150,
-            borderRadius: 8,
-            marginBottom: 8, // Espaciado entre la imagen y el título
-          },
-    });
-  
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: 'white',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e5e7eb',
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff1f2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  heroImage: {
+    width: width,
+    height: 220,
+  },
+  imageFallback: {
+    width: width,
+    height: 160,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  imageFallbackText: {
+    color: '#9ca3af',
+    fontSize: 14,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: 'white',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#f3f4f6',
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+  },
+  statusBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  dateChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  dateText: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  card: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  fieldValue: {
+    fontSize: 15,
+    color: '#111827',
+    lineHeight: 22,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 14,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  locationPill: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 10,
+    padding: 10,
+    gap: 3,
+  },
+  locationPillLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  locationPillValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ce112d',
+    marginHorizontal: 16,
+    marginTop: 24,
+    paddingVertical: 15,
+    borderRadius: 14,
+    gap: 8,
+    shadowColor: '#ce112d',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  deleteBtnText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  modal: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 28,
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  modalIconWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#fff1f2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 28,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalBtnCancel: {
+    backgroundColor: '#f3f4f6',
+  },
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  modalBtnDelete: {
+    backgroundColor: '#ce112d',
+    shadowColor: '#ce112d',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  modalDeleteText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: 'white',
+  },
+});
 
-export default StatusScreen
+export default StatusScreen;

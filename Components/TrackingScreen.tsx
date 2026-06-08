@@ -4,13 +4,13 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 const ProgressBar = ({ progress, status }) => {
   const getStatusColor = () => {
     switch (status) {
-      case 'en espera':
+      case 'EnEspera':
         return '#ce112d'; // Verde
-      case 'asignado':
+      case 'Asignado':
         return '#ce112d'; // Amarillo
-      case 'descartado':
+      case 'Descartado':
         return '#000000'; // Azul
-      case 'resuelto':
+      case 'Resuelto':
         return '#ce112d'; // Rojo (tu color original)
       default:
         return '#e0e0e0'; // Gris predeterminado
@@ -19,13 +19,13 @@ const ProgressBar = ({ progress, status }) => {
 
   const getSectionWidth = () => {
     switch (status) {
-      case 'en espera':
+      case 'EnEspera':
         return '25%'; // 1/4
-      case 'asignado':
+      case 'Asignado':
         return '50%'; // 1/2
-      case 'descartado':
+      case 'Descartado':
         return '75%'; // 3/4
-      case 'resuelto':
+      case 'Resuelto':
         return '100%'; // Completo
       default:
         return '0%'; // Ninguna sección

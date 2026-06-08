@@ -1,368 +1,210 @@
-import { StyleSheet, Text, View, Button, ScrollView, TouchableOpacity, Image,
-} from 'react-native';
-  import {Avatar} from 'react-native-paper';
-  import Icon from 'react-native-vector-icons/FontAwesome5';
-  import Mobile from 'react-native-vector-icons/Entypo';
-  import Email from 'react-native-vector-icons/MaterialCommunityIcons';
-  import Profession from 'react-native-vector-icons/AntDesign';
-  import {DrawerActions, useNavigation} from '@react-navigation/native';
-  import { Ionicons, AntDesign, Feather } from '@expo/vector-icons';
-  import {useEffect, useState} from 'react';
-  import axios from 'axios';
-  import AsyncStorage from '@react-native-async-storage/async-storage';
-  function ProfileScreen(props) {
-    const navigation = useNavigation<any>();
-    console.log(props);
-    const [email, setEmail] = useState('');
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { useEffect, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import { API_URL } from '../constants';
 
-    useEffect(() => {
-      getEmail();
-    }, []);
-  
-    async function getEmail() {
-      try {
-        const userEmail = await AsyncStorage.getItem('userEmail');
-        setEmail(userEmail);
-        console.log(userEmail)
-      } catch (error) {
-        console.error('Error al obtener el email:', error);
-      }
-    }
+function ProfileScreen() {
+  const navigation = useNavigation<any>();
+  const [email, setEmail] = useState('');
+  const [roles, setRoles] = useState<string[]>([]);
 
-    function signOut(){
-      AsyncStorage.setItem('isLoggedIn','');
-      AsyncStorage.setItem('token','');
-      navigation.navigate("LoginUser")
-    
-    }
+  useEffect(() => {
+    loadUser();
+  }, []);
 
-    const handleLogout = async () => {
-      try {
-        // Eliminar los datos de sesión almacenados
-        await AsyncStorage.removeItem('token');
-        await AsyncStorage.removeItem('userId');
-        // Regresar a la pantalla de inicio de sesión
-        navigation.navigate('Login');
-      } catch (error) {
-        console.error('Error al cerrar sesión:', error);
-      }
-    };
-
-    const obtenerNombreUsuario = (email) => {
-      const partesEmail = email.split('@');
-      return partesEmail[0];
-    };
-  
-    const nombreUsuario = obtenerNombreUsuario(email);
-  
-    const handlePress = () => {
-      // Llamando a ambas funciones
-      signOut();
-      handleLogout();
-    };
-  
-  
-
-    return (
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View>
-
-       
-         
-          <View style={{position: 'relative'}}>
-          <TouchableOpacity
-              style={styles.backIcon}
-              onPress={() => navigation.goBack()}
-            >
-              <AntDesign name="arrowleft" size={30} color="#ce112d" />
-            </TouchableOpacity>
-       
-            <TouchableOpacity style={[styles.editIcon, {marginTop:'4%'}]}>
-              <Icon name="user-edit" size={24} color={'white'} />
-            </TouchableOpacity>
-            <Image
-              width={100}
-              height={80}
-              resizeMode="contain"
-              style={{
-                width:'100%',
-                height:300,
-                marginTop: '-8%',
-              }}
-              source={require('../assets/images/fondo perfil.png')}
-            />
-          </View>
-          <View style={{alignItems: 'center', marginTop:'2%'}}>
-            <Avatar.Image
-              size={130}
-              style={styles.avatar}
-              source={{
-                uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQMAAADCCAMAAAB6zFdcAAAAM1BMVEXFzeD////Byt7L0uPByd7Q1+b7/P3j5/Dv8fbe4+3r7vTFzuDL0+P19/rn6/LZ3urW2+lU+LHUAAAFLklEQVR4nO2dC3arMAxEQXwCcfjsf7XPkLw2tEka5AEziu8CeuKpJVmyLLIskUgkEkdFbsT+HXEQKbNqOPWN59y72D9nd/z/vWqbOv/mozSY9n116vIl1acYg1++G9v+5/rzvMs+QwL/7x/O9a/lT5zL2D9uF7wAzcP1e+pP2AQi4/mZAJ6TfQ3EtY9N4D+jdQ2k6F8K4OltayDFKyP4cghmI6PzVvDnHrDuEqR9UwFPY1IEufw+C72yh8LeIUFOaxSY6K0dFt2qTXDDVJCUi0IBT2vHHmTUSWAnPjgZtBJ4p2BjJ4RIYCSHlCpEAi+CAXMowiSwIIJoguKSE7k5rD8aPWDg3gnKg8EPLrGXEUL5tGC2ijr2OkIIjAlfEJdVBLMNcmprQEnAW09YUzT5C9aNADgbfMGaPQlOgrwj1cAlDZIGGVYD2ktIpAasiRNQgzxpkOektoCMjUkDT+zFaEFqwNqohtSgiL0YHcHlVAMaoCooM6SJo/qK7RGk+yBpkGVBl2w2NAi7aEwamNEAWE5MGiQNkgZJg6RB0sCEBoj+C3YN0j5IGkyks3LKnSegdaSkQdIgaUCtwcf7RJHy02OjVG3/+knvSlxJd+uK7Emb6eqOrQVBoJvgCtu16xYasF23QXsPWDVI+yArN9CALTyW6LhAqAE8NuaEcQH2fOMbtkNS+e7IC8MaYIuJM3TnRGwxcYbvPQ+0eDBD95TFIRv3rwyx17Qa/EGRbmqSAz1xvSP2ktaDvW3MOV9xoJ0i43tftEPgc4n4U1Ls9ajAbgTOkSCh02AW1GxJ4w2gCKwSIAspF0pLmIB5BNaXvhnwnMSXMn6DqrBzBoUrqKoiXdp8B6qqWMVeSADyzijhNyDeBiinyOwSUc95uAemYZ66sl0wLYGcFPmK6gsgCTRzZJxAlJe5TQFyQiA3hQxRVuSOChPBXrEW2trBf/RDts1sg+C8iXZA1oKwc9IY++dDCDojUKcKd5T67JF6ou4C9SHBhjO4os2hiWupv1Hm0JY00LpFKx5xQmsLpjRQdisy19R/om3MsaSB9rxsSgOdBKY00E5SZOxBeoa2kGJJA+01gyEN1JmjJQ20jxnYq+p3qPNGQxqo66qtHQ3UfUlJA0MalKJ+8NnyPfh/hFzOnbpFr6vP7JeNGaALw0BJMfzemT4+IhqSYq8hFESDInNj3ky4BPSXroieLPZDAuI7nuROsUS84iAvqKmT5gWxVxEIQgJuY8BsA+6NgPmyMXVkQHXuM+cMuBEIjO98Z4K78r5pOFtVpWiRn7Qd+aop5QU9AqJuMyYVRKoNJkT58OD/cuy1vYUX4LTBvLgrzVAcXwYpthPgSjcc2ybkgjoRvKQvjqrCVl7gEU11RJMQGTeYFvicbjyaCnsrMFG3R1JBsnZjR/hEhf4gJiHi0NOg1nCOL8OejvAJ3RBTBScy7O4GHlCfXCwV4hrBkvMlQmYpZXQjWLJ7sJTyEEawZNfMsowUC/+m38kxiNtgbDCMZgfHIMUuaVEA3cYnBnx5aAu8e9xMASkYFJjoNpo/K+7oVnBPg68xuKw8zoHoPXp0pCzHg0bDV0CTa3EsjmBJjUunsB9u35Ua08wkGecmuIEIEVIReoIFwTf38JHhEQgcxuqOlx4qCBFBCnY7uKH/uhV0SHRU9CNFUO1EB0A9TMKIIczoggP+QxpRUQ0cM+MMrmiezG7x0bmoKDYCZhLqgVjf8WvhfLhkfaPnFt/di8zq6XNbfIczMqsHDW3xTdrYPFvrP7kiUsVMV4ODAAAAAElFTkSuQmCC',
-              }}
-            />
-          </View>
-  
-          <View style={{marginTop: '-13%', backgroundColor:'#ce112d', height:'8%'}}>
-            <Text style={styles.nameText}>{nombreUsuario}</Text>
-          </View>
-  
-          <View style={{marginTop: 20, marginHorizontal: 25}}>
-            <View style={styles.infoMain}>
-              <View style={styles.infoCont}>
-                <View style={[styles.infoIconCont, {backgroundColor: '#ce112d'}]}>
-                  <Email name="email" size={24} style={{color: 'white'}} />
-                </View>
-                <View style={styles.infoText}>
-                  <Text style={styles.infoSmall_Text}>Email</Text>
-                  <Text style={styles.infoLarge_Text} numberOfLines={1}>
-                  {email}
-                  </Text>
-                </View>
-              </View>
-            </View>
-  
-            <View style={styles.infoMain}>
-              <View style={styles.infoCont}>
-                <View style={[styles.infoIconCont, {backgroundColor: '#ce112d'}]}>
-                  <Profession name="profile" size={24} style={{color: 'white'}} />
-                </View>
-                <View style={styles.infoText}>
-                  <Text style={styles.infoSmall_Text}>Rol de usuario</Text>
-                  <Text style={styles.infoLarge_Text}>Usuario</Text>
-                </View>
-              </View>
-            </View>
-  
-            <View style={[styles.infoMain, {marginTop: 14}]}>
-              <TouchableOpacity
-              onPress={handlePress}
-              >
-                <Text style={{color:'red'}}>Cerrar sesión</Text>
-
-              </TouchableOpacity>
-              {/* <View style={styles.infoCont}>
-                <View style={[styles.infoIconCont, {backgroundColor: '#ce112d'}]}>
-                  <Mobile name="mobile" size={24} style={{color: 'white'}} />
-                </View>
-                <View style={styles.infoText}>
-                  <Text style={styles.infoSmall_Text}>Mobile</Text>
-                  <Text style={styles.infoLarge_Text}>Last name</Text>
-                </View>
-              </View> */}
-            </View>
-          </View>
-        </View>
-      </ScrollView>
-    );
+  async function loadUser() {
+    try {
+      const e = await AsyncStorage.getItem('userEmail') || '';
+      const r = JSON.parse(await AsyncStorage.getItem('userRoles') || '[]');
+      setEmail(e);
+      setRoles(r);
+    } catch (_) {}
   }
-  const styles = StyleSheet.create({
-    editIcon: {
-      zIndex: 1,
-      color: 'white',
-      position: 'absolute',
-      right: 2,
-      margin: 15,
-    },
-    backIcon: {
-      zIndex: 1,
-      color: 'white',
-      position: 'absolute',
-      left: 2,
-      margin: 15,
-    },
-    avatar: {
-      borderRadius: 100,
-      marginTop: -220,
-      // marginLeft: 105,
-      backgroundColor: 'white',
-      height: 140,
-      width: 140,
-      padding: 10,
-      borderColor: '#ccc',
-      borderWidth: 1,
-      elevation: 4,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    // 420475
-    nameText: {
-      color: 'white',
-      fontSize: 28,
-  
-      fontStyle: 'normal',
-      fontFamily: 'Open Sans',
-      fontWeight: 'bold',
-      textAlign: 'center',
-    },
-    bookCountMain: {
-      borderColor: '#b0b0b0',
-      borderWidth: 1,
-      marginTop: 18,
-      marginHorizontal: 20,
-  
-      borderRadius: 20,
-      flexDirection: 'row',
-      width: '88%',
-    },
-    bookCount: {
-      width: '50%',
-      borderColor: '#b0b0b0',
-      borderRightWidth: 1,
-      flexDirection: 'column',
-      paddingHorizontal: 10,
-      paddingVertical: 15,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    bookCountNum: {
-      color: '#5D01AA',
-      fontSize: 34,
-      fontWeight: '800',
-    },
-    bookCountText: {color: '#b3b3b3', fontSize: 14, fontWeight: '500'},
-    infoMain: {
-      alignItems:'center',
-      marginTop: 10,
-    },
-    infoCont: {
-      width: '100%',
-      flexDirection: 'row',
-    },
-    infoIconCont: {
-      justifyContent: 'center',
-      height: 40,
-      width: 40,
-      borderRadius: 20,
-  
-      alignItems: 'center',
-      elevation: -5,
-      borderColor: 'black',
-      backgroundColor: 'black',
-    },
-  
-    infoText: {
-      width: '80%',
-      flexDirection: 'column',
-      marginLeft: 25,
-      borderBottomWidth: 1,
-      paddingBottom: 10,
-      borderColor: '#e6e6e6',
-    },
-    infoSmall_Text: {
-      fontSize: 13,
-      color: '#b3b3b3',
-      fontWeight: '500',
-    },
-    infoLarge_Text: {
-      color: 'black',
-      fontSize: 18,
-      fontWeight: '600',
-    },
-    booksUploadedMain: {
-      paddingHorizontal: 10,
-      paddingBottom: 30,
-      marginTop: 20,
-    },
-    flatlistDiv: {
-      borderRadius: 15,
-      paddingHorizontal: 10,
-    },
-    booksUploadedText: {
-      fontSize: 26,
-      color: 'black',
-      fontWeight: '700',
-      paddingLeft: 20,
-      paddingBottom: 8,
-    },
-    booksUploadedCard: {
-      flexDirection: 'row',
-      width: '100%',
-      marginTop: 9,
-      marginBottom: 9,
-  
-      backgroundColor: '#f2f2f2',
-      paddingHorizontal: 15,
-      paddingVertical: 15,
-      borderRadius: 15,
-      elevation: 3,
-    },
-    booksUploadedImgDiv: {
-      width: '28%',
-    },
-    booksUploadedImg: {
-      width: '100%',
-      height: 120,
-      borderRadius: 15,
-    },
-    cardMidDiv: {
-      paddingHorizontal: 10,
-      width: '55%',
-      position: 'relative',
-    },
-    approvedText: {
-      fontSize: 12,
-      color: '#0d7313',
-      fontWeight: '600',
-      marginLeft: 5,
-    },
-    cardBookNameText: {
-      fontSize: 24,
-      color: 'black',
-      fontWeight: '700',
-      marginTop: 2,
-    },
-    cardBookAuthor: {
-      fontSize: 14,
-      color: 'black',
-      fontWeight: '600',
-      marginTop: 1,
-    },
-    cardRating: {
-      position: 'absolute',
-      bottom: 0,
-      paddingHorizontal: 10,
-      flexDirection: 'row',
-    },
-    cardRatingCount: {
-      fontSize: 14,
-      marginTop: -2,
-      paddingLeft: 4,
-      color: '#303030',
-    },
-    cardEditDiv: {
-      width: '17%',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    cardEditBtn: {
-      height: 44,
-      width: 44,
-      backgroundColor: '#774BBC',
-      borderRadius: 22,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    footer: {
-      padding: 10,
-      justifyContent: 'center',
-  
-      flexDirection: 'row',
-    },
-    loadMoreBtn: {
-      padding: 10,
-      backgroundColor: '#f5a002',
-      borderRadius: 4,
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
-      color: 'white',
-      paddingHorizontal: 20,
-    },
-    btnText: {
-      color: 'white',
-      fontSize: 15,
-      textAlign: 'center',
-      fontWeight: '600',
-    },
-  });
-  export default ProfileScreen;
+
+  const username = email.split('@')[0] || '?';
+  const initial = username.charAt(0).toUpperCase();
+  const isAdmin = roles.includes('admin');
+
+  async function handleLogout() {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await fetch(`${API_URL}/api/auth/sign-out`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    } catch (_) {}
+    await AsyncStorage.multiRemove(['token', 'userId', 'userEmail', 'isLoggedIn', 'userRoles']);
+    navigation.navigate('Login');
+  }
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f9fafb' }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>{initial}</Text>
+          </View>
+          <Text style={styles.username}>{username}</Text>
+          <Text style={styles.emailText}>{email}</Text>
+          {roles.map(r => (
+            <View key={r} style={styles.roleBadge}>
+              <Text style={styles.roleText}>{r}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Info */}
+        <View style={styles.card}>
+          <Row icon="mail-outline" label="Correo electrónico" value={email} />
+          <View style={styles.divider} />
+          <Row icon="shield-checkmark-outline" label="Roles" value={roles.join(', ')} />
+        </View>
+
+        {/* Admin section */}
+        {isAdmin && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Administración</Text>
+            <TouchableOpacity
+              style={styles.adminBtn}
+              onPress={() => navigation.navigate('AdminMapsScreen')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.adminBtnIcon}>
+                <Ionicons name="map-outline" size={22} color="#ce112d" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.adminBtnLabel}>Gestionar Croquis</Text>
+                <Text style={styles.adminBtnSub}>Facultades, edificios y cuartos</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Logout */}
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
+            <Ionicons name="exit-outline" size={22} color="#ce112d" />
+            <Text style={styles.logoutText}>Cerrar sesión</Text>
+          </TouchableOpacity>
+        </View>
+
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function Row({ icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <View style={styles.row}>
+      <View style={styles.rowIcon}>
+        <Ionicons name={icon} size={20} color="#ce112d" />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        <Text style={styles.rowValue} numberOfLines={1}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    backgroundColor: '#ce112d',
+    paddingTop: 48,
+    paddingBottom: 32,
+    alignItems: 'center',
+    gap: 6,
+  },
+  avatarCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  avatarText: { fontSize: 36, fontWeight: 'bold', color: 'white' },
+  username: { fontSize: 22, fontWeight: '700', color: 'white', textTransform: 'capitalize' },
+  emailText: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
+  roleBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderRadius: 20,
+    marginTop: 4,
+  },
+  roleText: { color: 'white', fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
+  card: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 16,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 14,
+  },
+  rowIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: 'rgba(206,17,45,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowLabel: { fontSize: 12, color: '#9ca3af', marginBottom: 2 },
+  rowValue: { fontSize: 15, color: '#1f2937', fontWeight: '500' },
+  divider: { height: 1, backgroundColor: '#f3f4f6', marginHorizontal: 16 },
+  adminBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 14,
+  },
+  adminBtnIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: 'rgba(206,17,45,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adminBtnLabel: { fontSize: 15, color: '#1f2937', fontWeight: '500' },
+  adminBtnSub: { fontSize: 12, color: '#9ca3af', marginTop: 1 },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  logoutText: { fontSize: 16, color: '#ce112d', fontWeight: '600' },
+});
+
+export default ProfileScreen;

@@ -1,9 +1,10 @@
 import { API_URL } from '../../constants';
 import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, Image, Text } from 'react-native';
+import { View, Image, Text } from 'react-native';
 import GridComponent from './GridComponent';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GridSkeleton } from '../Skeleton';
 
 const ImageContainer = () => {
   const navigation = useNavigation<any>();
@@ -19,7 +20,7 @@ const ImageContainer = () => {
         
         if (storedToken) {
           setToken(storedToken);
-          const response = await fetch(`${API_URL}/api/reports/department/mantenimiento`, {
+          const response = await fetch(`${API_URL}/api/reports/department/Mantenimiento`, {
             method: 'GET',
             headers: {
               Authorization: `Bearer ${storedToken}`,
@@ -33,7 +34,7 @@ const ImageContainer = () => {
 
           const responseData = await response.json();
           // Filtra los reportes que no estén resueltos
-          const filteredData = responseData.filter(item => item.status !== 'resuelto');
+          const filteredData = responseData.filter(item => item.status !== 'Resuelto');
           // Mapea los datos recibidos para adaptarlos a tu estructura de datos requerida
           const modifiedData = filteredData.map(item => ({
             id: item.id,
@@ -65,13 +66,7 @@ const ImageContainer = () => {
     });
   };
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
+  if (loading) return <GridSkeleton />;
 
   if (data.length === 0) {
     return (

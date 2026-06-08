@@ -1,9 +1,10 @@
 import { API_URL } from '../../constants';
 import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, Image, Text } from 'react-native';
+import { View, Image, Text } from 'react-native';
 import GridComponent from './GridComponent';
 import { useNavigation, useIsFocused } from '@react-navigation/native'; // Importa useIsFocused desde react-navigation
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GridSkeleton } from '../Skeleton';
 
 const ImageContainer = () => {
   const navigation = useNavigation<any>();
@@ -21,7 +22,7 @@ const ImageContainer = () => {
         if (storedToken && storedUserId) {
           setToken(storedToken);
           setUserId(storedUserId);
-          const response = await fetch(`${API_URL}/api/reports/department/obras`, {
+          const response = await fetch(`${API_URL}/api/reports/department/Obras`, {
             method: 'GET',
             headers: {
               Authorization: `Bearer ${storedToken}`,
@@ -70,13 +71,7 @@ const ImageContainer = () => {
     });
   };
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
+  if (loading) return <GridSkeleton />;
 
   if (data.length === 0) {
     return (
