@@ -183,6 +183,7 @@ function Mantenimiento(props) {
           </Modal>
         </View>
         {/* END MODAL */}
+
         <View style={{
           alignItems: 'center',
           marginTop: 40
@@ -191,6 +192,7 @@ function Mantenimiento(props) {
           <Text  style={styles.nombreUsuario} > {nombreUsuario}</Text>
         </Text>
         </View>
+        
 
         <View style={{
           marginTop: 8,

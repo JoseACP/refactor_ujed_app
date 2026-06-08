@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from '../constants';
-import Toast from 'react-native-toast-message';
+import { toast } from '@tamagui/toast/v2';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Faculty  = { id: string; name: string; slug: string; mapUrl?: string };
@@ -197,14 +197,14 @@ function FacultiesSection({
     try {
       setUploading(true);
       const key = await uploadImage();
-      if (key) { setImageKey(key); Toast.show({ type: 'success', text1: 'Imagen subida' }); }
+      if (key) { setImageKey(key); toast.success('Imagen subida'); }
     } catch (e: any) {
-      Toast.show({ type: 'error', text1: 'Error', text2: e.message });
+      toast.error('Error', { description: e.message });
     } finally { setUploading(false); }
   }
 
   async function create() {
-    if (!name.trim()) return Toast.show({ type: 'error', text1: 'Nombre requerido' });
+    if (!name.trim()) return toast.error('Nombre requerido');
     try {
       const headers = await authHeaders();
       const res = await fetch(`${API_URL}/api/admin/maps/faculties`, {
@@ -213,11 +213,11 @@ function FacultiesSection({
         body: JSON.stringify({ name: name.trim(), slug: toSlug(name), ...(imageKey && { mapKey: imageKey }) }),
       });
       if (!res.ok) throw new Error((await res.json()).message || 'Error');
-      Toast.show({ type: 'success', text1: 'Facultad creada' });
+      toast.success('Facultad creada');
       setName(''); setImageKey('');
       onRefresh();
     } catch (e: any) {
-      Toast.show({ type: 'error', text1: 'Error', text2: e.message });
+      toast.error('Error', { description: e.message });
     }
   }
 
@@ -296,14 +296,14 @@ function BuildingsSection({
     try {
       setUploading(true);
       const key = await uploadImage();
-      if (key) { setImageKey(key); Toast.show({ type: 'success', text1: 'Imagen subida' }); }
+      if (key) { setImageKey(key); toast.success('Imagen subida'); }
     } catch (e: any) {
-      Toast.show({ type: 'error', text1: 'Error', text2: e.message });
+      toast.error('Error', { description: e.message });
     } finally { setUploading(false); }
   }
 
   async function create() {
-    if (!name.trim()) return Toast.show({ type: 'error', text1: 'Nombre requerido' });
+    if (!name.trim()) return toast.error('Nombre requerido');
     try {
       const headers = await authHeaders();
       const res = await fetch(`${API_URL}/api/admin/maps/buildings`, {
@@ -312,11 +312,11 @@ function BuildingsSection({
         body: JSON.stringify({ facultyId, name: name.trim(), slug: toSlug(name), ...(imageKey && { mapKey: imageKey }) }),
       });
       if (!res.ok) throw new Error((await res.json()).message || 'Error');
-      Toast.show({ type: 'success', text1: 'Edificio creado' });
+      toast.success('Edificio creado');
       setName(''); setImageKey('');
       onRefresh();
     } catch (e: any) {
-      Toast.show({ type: 'error', text1: 'Error', text2: e.message });
+      toast.error('Error', { description: e.message });
     }
   }
 
@@ -391,13 +391,13 @@ function RoomsSection({
   );
 
   async function create() {
-    if (!name.trim()) return Toast.show({ type: 'error', text1: 'Nombre requerido' });
+    if (!name.trim()) return toast.error('Nombre requerido');
     const px = parseFloat(pointX);
     const py = parseFloat(pointY);
     if (pointX && (isNaN(px) || px < 0 || px > 1))
-      return Toast.show({ type: 'error', text1: 'pointX debe ser entre 0.0 y 1.0' });
+      return toast.error('pointX debe ser entre 0.0 y 1.0');
     if (pointY && (isNaN(py) || py < 0 || py > 1))
-      return Toast.show({ type: 'error', text1: 'pointY debe ser entre 0.0 y 1.0' });
+      return toast.error('pointY debe ser entre 0.0 y 1.0');
 
     try {
       const headers = await authHeaders();
@@ -410,11 +410,11 @@ function RoomsSection({
         method: 'POST', headers, body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error((await res.json()).message || 'Error');
-      Toast.show({ type: 'success', text1: 'Cuarto creado' });
+      toast.success('Cuarto creado');
       setName(''); setZone(''); setPointX(''); setPointY('');
       onRefresh();
     } catch (e: any) {
-      Toast.show({ type: 'error', text1: 'Error', text2: e.message });
+      toast.error('Error', { description: e.message });
     }
   }
 

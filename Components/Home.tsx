@@ -13,9 +13,6 @@ function Home() {
   const [name, setName] = useState('');
 
   useEffect(() => {
-    AsyncStorage.getItem('userName').then(e => {
-      if (e) setName(e);
-    }).catch(() => {});
     AsyncStorage.getItem('userEmail').then(e => {
       if (e) setUsername(e.split('@')[0]);
     }).catch(() => {});
@@ -31,7 +28,7 @@ function Home() {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View>
           <Text style={styles.welcomeSmall}>Bienvenido</Text>
-          <Text style={styles.welcomeName}>{name}</Text>
+          <Text style={styles.welcomeName}>{username}</Text>
         </View>
       </View>
 
@@ -51,7 +48,7 @@ function Home() {
       <ImageContainer />
 
       {/* Botón agregar reporte */}
-      <View style={styles.btnContainer}>
+      {/* <View style={styles.btnContainer}>
         <TouchableOpacity
           style={styles.addBtn}
           onPress={() => navigation.navigate('AddReportScreen')}
@@ -59,7 +56,7 @@ function Home() {
         >
           <Text style={styles.addBtnText}>Agregar reporte</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
     </ScrollView>
   );
 }

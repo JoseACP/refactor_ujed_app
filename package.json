@@ -21,6 +21,8 @@
     "@tamagui/babel-plugin": "^2.1.0",
     "@tamagui/config": "^2.1.0",
     "@tamagui/core": "^2.1.0",
+    "@tamagui/lucide-icons": "2.0.0-rc.26",
+    "@tanstack/react-query": "^5.101.0",
     "axios": "^1.6.7",
     "expo": "^50.0.14",
     "expo-camera": "~14.0.5",

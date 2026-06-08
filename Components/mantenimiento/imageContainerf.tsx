@@ -1,68 +1,53 @@
 import { API_URL } from '../../constants';
 import React, { useState, useEffect } from 'react';
-import { View, Image, Text } from 'react-native';
-import GridComponent from './GridComponentf';
+import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import GridComponentf from './GridComponentf';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import GridComponentf from './GridComponentf';
 import { GridSkeleton } from '../Skeleton';
 
 const ImageContainerf = () => {
   const navigation = useNavigation<any>();
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState('');
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const storedToken = await AsyncStorage.getItem('token');
-        
-        if (storedToken) {
-          setToken(storedToken);
-          const response = await fetch(`${API_URL}/api/reports/department/Mantenimiento`, {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${storedToken}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (!response.ok) {
-            throw new Error('Error al obtener los datos');
-          }
-
-          const responseData = await response.json();
-          // Filtra los reportes que están resueltos
-          const filteredData = responseData.filter(item => item.status === 'Resuelto');
-          // Mapea los datos recibidos para adaptarlos a tu estructura de datos requerida
-          const modifiedData = filteredData.map(item => ({
-            id: item.id,
-            title: item.title,
-            imageUri: item.images.length > 0 ? item.images[0].url : 'https://imgs.search.brave.com/k_igGCUtM9UAFo2IejoBF2ctlbFUeolBzcU6dxVnKfc/rs:fit:500:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMtMDAuaWNvbmR1/Y2suY29tL2Fzc2V0/cy4wMC9uby1pbWFn/ZS1pY29uLTUxMng1/MTItbGZvYW5sMHcu/cG5n',
-            description: item.description,
-            fecha: item.created_at,
-            estado: item.status
-          }));
-          setData(modifiedData);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error al obtener los datos:', error);
+        const token = await AsyncStorage.getItem('token');
+        const res = await fetch(`${API_URL}/api/reports/department/Mantenimiento`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) throw new Error('Error al obtener datos');
+        const json = await res.json();
+        setData(
+          json
+            .filter((item: any) => item.status === 'Resuelto')
+            .map((item: any) => ({
+              id: item.id,
+              title: item.title,
+              imageUri: item.images?.[0]?.url ?? null,
+              description: item.description,
+              ubicacion: item.location,
+              fecha: item.created_at,
+              estado: item.status,
+            }))
+        );
+      } catch (e) {
+        console.error('imageContainerf mantenimiento:', e);
+      } finally {
+        setLoading(false);
       }
     }
-
     fetchData();
   }, []);
 
-  const handleItemClick = (item) => {
+  const handleItemClick = (item: any) => {
     navigation.navigate('Status', {
-      itemId: item.id,
-      imageUrl: item.imageUri,
-      estado: item.estado,
-      description: item.description,
-      ubicacion: item.title,
-      fecha: item.fecha,
+      itemId: item.id, imageUrl: item.imageUri, estado: item.estado,
+      description: item.description, ubicacion: item.ubicacion ?? {},
+      title: item.title, fecha: item.fecha,
     });
   };
 
@@ -70,27 +55,21 @@ const ImageContainerf = () => {
 
   if (data.length === 0) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginBottom: 80}}>
-        <Text
-        style={{
-          marginTop:12,
-          marginBottom:25,
-          color: '#ce112d',
-            fontWeight: 'bold',
-            fontSize: 22,
-            margin: 15
-        }}
-        >Aun no tienes reportes</Text>
-        <Image source={{ uri: 'https://imgs.search.brave.com/ZzjG7zgtJhb5nkI1A1ocQvovjZnHDRYplDYGlcZm19Q/rs:fit:500:0:0/g:ce/aHR0cHM6Ly9jZG4t/aWNvbnMtcG5nLmZy/ZWVwaWsuY29tLzI1/Ni82MDcvNjA3Njc0/LnBuZw' }} style={{ width: 200, height: 200 }} />
+      <View style={styles.empty}>
+        <Ionicons name="checkmark-circle-outline" size={52} color="#d1d5db" />
+        <Text style={styles.emptyTitle}>Sin trabajos terminados</Text>
+        <Text style={styles.emptySub}>Los trabajos completados aparecerán aquí</Text>
       </View>
     );
   }
 
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <GridComponentf data={data} onItemClick={handleItemClick} />
-    </View>
-  );
+  return <GridComponentf data={data} onItemClick={handleItemClick} />;
 };
+
+const styles = StyleSheet.create({
+  empty: { alignItems: 'center', paddingVertical: 36, paddingHorizontal: 24, gap: 8 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: '#374151', marginTop: 4 },
+  emptySub: { fontSize: 13, color: '#9ca3af', textAlign: 'center' },
+});
 
 export default ImageContainerf;

@@ -10,7 +10,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
 import axios from 'axios';
-import Toast from 'react-native-toast-message';
+import { toast } from '@tamagui/toast/v2';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import { API_URL } from '../../constants';
 
@@ -28,32 +28,32 @@ function RegisterPage() {
 
   async function handleSubmit() {
     if (!name || !lastName || !email || !password) {
-      Toast.show({ type: 'error', text1: 'Campos incompletos', text2: 'Por favor llena todos los campos.' });
+      toast.error('Campos incompletos', { description: 'Por favor llena todos los campos.' });
       return;
     }
     if (!emailValid) {
-      Toast.show({ type: 'error', text1: 'Email inválido', text2: 'Ingresa un correo electrónico válido.' });
+      toast.error('Email inválido', { description: 'Ingresa un correo electrónico válido.' });
       return;
     }
     if (!passwordValid) {
-      Toast.show({ type: 'error', text1: 'Contraseña débil', text2: 'Mínimo 6 caracteres, mayúscula, minúscula y número.' });
+      toast.error('Contraseña débil', { description: 'Mínimo 6 caracteres, mayúscula, minúscula y número.' });
       return;
     }
 
     setLoading(true);
     try {
       const response = await axios.post(`${API_URL}/api/auth/sign-up/email`, { name, lastName, email, password });
-      const { token, user } = response.data;
+      const { token } = response.data;
       if (token) {
-        Toast.show({ type: 'success', text1: 'Cuenta creada', text2: '¡Ya puedes iniciar sesión!' });
+        toast.success('Cuenta creada', { description: '¡Ya puedes iniciar sesión!' });
         navigation.navigate('Login');
       } else {
-        Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo crear la cuenta.' });
+        toast.error('Error', { description: 'No se pudo crear la cuenta.' });
       }
     } catch (error) {
       const msg = error.response?.data?.message;
       const text2 = Array.isArray(msg) ? msg.join(', ') : (msg || 'Error al registrarse. Inténtalo de nuevo.');
-      Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Error de registro', text2 });
+      toast.error('Error de registro', { description: text2, duration: 8000 });
     } finally {
       setLoading(false);
     }

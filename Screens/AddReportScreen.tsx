@@ -11,7 +11,7 @@ import * as FileSystem from 'expo-file-system';
 import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { SkeletonBlock } from '../Components/Skeleton';
-import Toast from 'react-native-toast-message';
+import { toast } from '@tamagui/toast/v2';
 
 const imgDir = FileSystem.documentDirectory + 'images/';
 
@@ -179,10 +179,10 @@ export default function AddReportScreen() {
   }
 
   async function submitReport() {
-    if (!title.trim())  return Toast.show({ type: 'error', text1: 'Escribe un título' });
-    if (!selFaculty)    return Toast.show({ type: 'error', text1: 'Selecciona una facultad' });
-    if (!selBuilding)   return Toast.show({ type: 'error', text1: 'Selecciona un edificio' });
-    if (!selRoom)       return Toast.show({ type: 'error', text1: 'Selecciona un salón' });
+    if (!title.trim())  return toast.error('Escribe un título');
+    if (!selFaculty)    return toast.error('Selecciona una facultad');
+    if (!selBuilding)   return toast.error('Selecciona un edificio');
+    if (!selRoom)       return toast.error('Selecciona un salón');
 
     const locationStr = `${selFaculty.slug}/${selBuilding.slug}/${selRoom.slug}`;
     console.log('=== SUBMIT REPORT ===');
@@ -216,16 +216,16 @@ export default function AddReportScreen() {
       if (!res.ok) {
         const msg = json?.message;
         const text2 = Array.isArray(msg) ? msg.join(', ') : (msg || 'Inténtalo de nuevo.');
-        Toast.show({ type: 'error', text1: 'Error', text2, visibilityTime: 8000 });
+        toast.error('Error', { description: text2, duration: 8000 });
       } else {
         for (const img of images) await FileSystem.deleteAsync(img).catch(() => {});
         setTitle(''); setDescription(''); setImages([]);
         setSelFaculty(null); setSelBuilding(null); setSelRoom(null);
-        Toast.show({ type: 'success', text1: 'Reporte enviado', text2: 'Fue registrado exitosamente.' });
+        toast.success('Reporte enviado', { description: 'Fue registrado exitosamente.' });
         navigation.goBack();
       }
     } catch {
-      Toast.show({ type: 'error', text1: 'Error de red', text2: 'No se pudo conectar al servidor.' });
+      toast.error('Error de red', { description: 'No se pudo conectar al servidor.' });
     } finally {
       setUploading(false);
     }

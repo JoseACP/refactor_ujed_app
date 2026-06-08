@@ -5,7 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Toast from 'react-native-toast-message';
+import { Toast } from '@tamagui/toast/v2'
 import { TamaguiProvider } from 'tamagui';
 import tamaguiConfig from './tamagui.config';
 
@@ -213,10 +213,14 @@ function RootNav() {
 export default function App() {
   return (
     <TamaguiProvider config={tamaguiConfig} defaultTheme="light">
-      <NavigationContainer>
-        <RootNav />
-        <Toast />
-      </NavigationContainer>
+      <Toast position="bottom-center" duration={4000}>
+        <NavigationContainer>
+          <RootNav />
+        </NavigationContainer>
+        <Toast.Viewport portalToRoot={false}>
+          <Toast.List />
+        </Toast.Viewport>
+      </Toast>
     </TamaguiProvider>
   );
 }

@@ -1,5 +1,5 @@
 import { API_URL } from '../constants';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,6 +9,7 @@ import {
   Image,
   Alert,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -80,6 +81,41 @@ function StatusTracker({ estado }: { estado?: string }) {
   );
 }
 
+function HeroImage({ uri }: { uri: string }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const shimmer = useRef(new Animated.Value(0.4)).current;
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmer, { toValue: 1,   duration: 700, useNativeDriver: true }),
+        Animated.timing(shimmer, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  function handleLoad() {
+    setLoaded(true);
+    Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+  }
+
+  return (
+    <View style={styles.heroImage}>
+      {!loaded && (
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#e5e7eb', opacity: shimmer }]} />
+      )}
+      <Animated.Image
+        source={{ uri }}
+        style={[StyleSheet.absoluteFill, { opacity }]}
+        resizeMode="cover"
+        onLoad={handleLoad}
+        onError={handleLoad}
+      />
+    </View>
+  );
+}
+
 function StatusScreen() {
   const route = useRoute() as any;
   const navigation = useNavigation<any>();
@@ -127,10 +163,8 @@ function StatusScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Imagen hero */}
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.heroImage} resizeMode="cover" />
-        ) : (
+        {/* Imagen hero con skeleton */}
+        {imageUrl ? <HeroImage uri={imageUrl} /> : (
           <View style={styles.imageFallback}>
             <Feather name="image" size={40} color="#9ca3af" />
             <Text style={styles.imageFallbackText}>Sin imagen</Text>

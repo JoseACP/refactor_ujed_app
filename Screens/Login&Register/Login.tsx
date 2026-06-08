@@ -11,7 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
 import axios from 'axios';
 import NetInfo from '@react-native-community/netinfo';
-import Toast from 'react-native-toast-message';
+import { toast } from '@tamagui/toast/v2';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import { API_URL } from '../../constants';
@@ -28,7 +28,7 @@ function LoginPage() {
     try {
       const isConnected = await NetInfo.fetch().then(s => s.isConnected);
       if (isConnected === false) {
-        Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Sin conexión', text2: 'No hay conexión a Internet.' });
+        toast.error('Sin conexión', { description: 'No hay conexión a Internet.', duration: 8000 });
         return;
       }
 
@@ -43,15 +43,15 @@ function LoginPage() {
         if (user.roles?.length > 0) {
           await AsyncStorage.setItem('userRoles', JSON.stringify(user.roles));
         }
-        Toast.show({ type: 'success', text1: '¡Bienvenido!', text2: `Hola, ${email}` });
+        toast.success('¡Bienvenido!', { description: `Hola, ${email}` });
         navigation.navigate('Home', { token, userId: user.id, email });
       } else {
-        Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Error', text2: 'Respuesta inválida del servidor.' });
+        toast.error('Error', { description: 'Respuesta inválida del servidor.', duration: 8000 });
       }
     } catch (error) {
       const msg = error.response?.data?.message;
       const text2 = Array.isArray(msg) ? msg.join(', ') : (msg || 'Credenciales incorrectas. Inténtalo de nuevo.');
-      Toast.show({ type: 'error', visibilityTime: 8000, text1: 'Error de inicio de sesión', text2 });
+      toast.error('Error de inicio de sesión', { description: text2, duration: 8000 });
     } finally {
       setLoading(false);
     }
